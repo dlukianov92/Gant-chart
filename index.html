@@ -64,10 +64,20 @@
   .header.l1 .mcell{font-size:12px}
   .bands{position:absolute;top:0;bottom:0;left:0;z-index:0;pointer-events:none}
   .bands .mb{position:absolute;top:0;bottom:0}
-  .bands .mb.alt{background:rgba(47,84,150,.045)}
-  .bands .mb.edge{border-left:1px solid rgba(47,84,150,.14)}
-  .bar.roll{border-radius:8px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
-  .bar.roll .lbl{font-weight:700}
+  .bands .mb.edge{border-left:1px solid rgba(47,84,150,.18)}
+  .bar.roll{border-radius:7px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06);font-size:11px}
+  .bar.roll .lbl{font-weight:800}
+  .labor{border-top:2px solid var(--grid-strong);margin-top:6px;background:#fff}
+  .labhead{background:#eef2f8;cursor:default}
+  .lableg{gap:6px !important}
+  .lableg .legit{display:inline-flex;align-items:center;gap:4px;margin-left:8px;font-weight:700;color:var(--ink)}
+  .labrow{position:relative;height:24px;display:flex;border-bottom:1px solid var(--grid)}
+  .lablabel{position:sticky;left:0;flex:0 0 0;width:0;z-index:5}
+  .lablabel>i{position:absolute;left:4px;top:6px;width:12px;height:12px;border-radius:4px;display:block;box-shadow:0 0 0 2px #fff}
+  .labcells{display:flex;height:100%;flex:0 0 auto}
+  .labcell{flex:0 0 var(--weekW);display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:800;color:var(--muted);border-left:1px solid var(--grid)}
+  .labcell.has{color:#fff}
 
   .today{position:absolute;top:0;bottom:0;width:2px;background:var(--today);z-index:6;pointer-events:none}
   .today::before{content:"сегодня";position:absolute;top:2px;left:4px;font-size:9px;font-weight:700;
@@ -274,7 +284,8 @@
   <h2>Новый элемент</h2>
   <div class="field"><input id="tName" placeholder="Имя (напр. Кладка стен 5 этажа)"></div>
   <div class="manual" style="margin-bottom:10px">
-    <input id="tUnit" class="short" placeholder="Ед. (м³)">
+    <input id="tUnit" class="short" placeholder="Ед. (м³)" list="unitOpts" autocomplete="off">
+    <datalist id="unitOpts"></datalist>
     <input id="tVol" class="short" inputmode="decimal" placeholder="Объём">
     <select id="tDisc" style="flex:1;border:1.5px solid var(--grid-strong);border-radius:10px;padding:10px;font-size:14px"></select>
   </div>
@@ -393,6 +404,32 @@
   function pkgCost(b){ return pkgResources(b).reduce(function(s,r){return s+(r.cost||0);},0); }
   function elemBudget(id){ return elemRes(id).reduce(function(s,r){ return s+((num(r.price)||0)*(num(r.total)||0)); },0); }
   function objBudget(){ return allTypes().reduce(function(s,t){ return s+elemBudget(t.id); },0); }
+  // чел-ч работ пакета по специальностям
+  function pkgWorkMH(b){
+    var share=pkgShare(b); var out=[];
+    elemRes(b.typeId).forEach(function(r,i){
+      if(r.rtype!=="Работа") return;
+      var ov=(b.resOv && b.resOv[i]!=null)?num(b.resOv[i]):null;
+      var qty=(ov!=null?ov:(num(r.total)||0)*share);
+      var mh=(num(r.chh)||0)*qty;
+      if(mh>0) out.push({prof:(r.prof||"Рабочие"), mh:mh});
+    });
+    return out;
+  }
+  var WORKWEEK=40; // 5 дней × 8 ч
+  function computeLabor(){
+    var weeks=[]; for(var w=0;w<WEEKS;w++) weeks.push({});
+    var profs={}, porder=[];
+    state.bars.forEach(function(b){
+      if(b.typeId===null) return; var span=b.end-b.start; if(span<=0) return;
+      pkgWorkMH(b).forEach(function(x){
+        var per=x.mh/span;
+        for(var d=b.start; d<b.end; d++){ var w=Math.floor(d/7); if(w<0||w>=WEEKS) continue; weeks[w][x.prof]=(weeks[w][x.prof]||0)+per; }
+        if(!profs[x.prof]){ profs[x.prof]=porder.length; porder.push(x.prof); }
+      });
+    });
+    return {weeks:weeks, profs:porder};
+  }
   function pkgDonePct(b){ var pv=num(b.pkgVol)||0, f=num(b.fact)||0; return pv>0?Math.max(0,Math.min(100,f/pv*100)):0; }
   // трудоёмкость: сумма по категориям-работам (чел-ч/ед × объём категории на элемент)
   function elemTotalMH(id){ return elemRes(id).reduce(function(s,r){ return s + (r.rtype==="Работа"?((num(r.chh)||0)*(num(r.total)||0)):0); },0); }
@@ -574,7 +611,7 @@
         head.appendChild(lab); g.appendChild(head);
         var rows=document.createElement("div"); rows.className="grows";
         if(viewMode==="L1"){
-          rows.style.height=ROWH+"px"; rows.appendChild(makeRollupBar(t,bars));
+          rows.style.height=L1ROWH+"px"; rows.appendChild(makeRollupBar(t,bars));
         } else {
           rows.style.height=(bars.length*ROWH)+"px";
           bars.forEach(function(b,ri){ rows.appendChild(makeBar(b,ri,t)); });
@@ -582,19 +619,46 @@
         g.appendChild(rows); groupsEl.appendChild(g);
       });
     });
+    renderLabor();
     var minH=document.getElementById("scroll").clientHeight-HEADERH;
     groupsEl.style.minHeight=(groupsEl.offsetHeight<minH?minH:0)+"px";
   }
+  var PROFCOL=["#C0392B","#2980B9","#16A085","#8E44AD","#E67E22","#2C3E50","#D81B60"];
+  function renderLabor(){
+    var L=computeLabor(); if(!L.profs.length) return;
+    var wrap=document.createElement("div"); wrap.className="labor"; wrap.style.width=(DAYS*DAYW)+"px";
+    var head=document.createElement("div"); head.className="dhead labhead";
+    var leg='<span>👷 Рабочих в неделю (сред.):</span>';
+    L.profs.forEach(function(prof,pi){ leg+=' <span class="legit"><span class="chip" style="background:'+PROFCOL[pi%PROFCOL.length]+'"></span>'+escapeHtml(prof)+'</span>'; });
+    head.innerHTML='<div class="dlabel lableg">'+leg+'</div>';
+    wrap.appendChild(head);
+    L.profs.forEach(function(prof,pi){
+      var row=document.createElement("div"); row.className="labrow";
+      var lab=document.createElement("div"); lab.className="lablabel";
+      lab.innerHTML='<i style="background:'+PROFCOL[pi%PROFCOL.length]+'"></i>';
+      row.appendChild(lab);
+      var cells=document.createElement("div"); cells.className="labcells";
+      for(var w=0; w<WEEKS; w++){
+        var mh=L.weeks[w][prof]||0; var n=mh>0?Math.ceil(mh/WORKWEEK):0;
+        var c=document.createElement("div"); c.className="labcell"+(n>0?" has":""); c.textContent=n>0?n:"";
+        if(n>0) c.style.background=PROFCOL[pi%PROFCOL.length];
+        cells.appendChild(c);
+      }
+      row.appendChild(cells);
+      wrap.appendChild(row);
+    });
+    groupsEl.appendChild(wrap);
+  }
+  var ROLLH=14, L1ROWH=24;
   function makeRollupBar(t,bars){
     var s=Math.min.apply(null,bars.map(function(b){return b.start;}));
     var e=Math.max.apply(null,bars.map(function(b){return b.end;}));
     var pv=num(t.projVol)||0, fact=0; bars.forEach(function(b){ fact+=(num(b.fact)||0); });
     var done=pv>0?Math.max(0,Math.min(100,fact/pv*100)):0;
     var el=document.createElement("div"); el.className="bar roll";
-    el.style.top=((ROWH-BARH)/2)+"px"; el.style.left=(s*DAYW)+"px";
+    el.style.height=ROLLH+"px"; el.style.top=((L1ROWH-ROLLH)/2)+"px"; el.style.left=(s*DAYW)+"px";
     el.style.width=Math.max(DAYW,(e-s)*DAYW)+"px"; el.style.background=t.color; el.style.color=t.ink;
-    var lbl=dfmt(dayToDate(s))+"–"+dfmt(dayToDate(e))+(done>0?("  ·  "+Math.round(done)+"%"):"");
-    el.innerHTML='<span class="prog" style="width:'+done+'%"></span><span class="lbl">'+escapeHtml(lbl)+'</span>';
+    el.innerHTML='<span class="prog" style="width:'+done+'%"></span><span class="lbl">'+Math.round(done)+'%</span>';
     return el;
   }
   function dfmt(d){ return ("0"+d.getDate()).slice(-2)+"."+("0"+(d.getMonth()+1)).slice(-2); }
@@ -711,7 +775,15 @@
     state.bars.forEach(function(b){ if(b.typeId===id) b.typeId=null; });
     save(); render(); renderTypeList(); if(sheet.classList.contains("on")){ buildTypeChips(); markSelected(); } toast("Элемент удалён"); });
   function fillDisc(){ tDisc.innerHTML=""; DISCIPLINES.forEach(function(d){ var o=document.createElement("option"); o.value=d; o.textContent=d; tDisc.appendChild(o); }); }
-  function openTypeSheet(){ selColor=PALETTE[0]; tName.value=""; tUnit.value=""; tVol.value=""; fillDisc(); renderSwatches(); renderTypeList(); ovl2.classList.add("on"); typeSheet.classList.add("on"); }
+  function fillUnits(){
+    var dl=document.getElementById("unitOpts"); if(!dl) return;
+    var seen={}, out=[];
+    ["м³","м²","м","шт","т","кг","л","маш-ч","чел-ч","компл.","пог.м"].forEach(function(u){ seen[u]=1; out.push(u); });
+    allTypes().forEach(function(t){ if(t.unit&&!seen[t.unit]){ seen[t.unit]=1; out.push(t.unit); } });
+    Object.keys(state.elemRes||{}).forEach(function(id){ (state.elemRes[id]||[]).forEach(function(r){ if(r.unit&&!seen[r.unit]){ seen[r.unit]=1; out.push(r.unit); } }); });
+    dl.innerHTML=""; out.forEach(function(u){ var o=document.createElement("option"); o.value=u; dl.appendChild(o); });
+  }
+  function openTypeSheet(){ selColor=PALETTE[0]; tName.value=""; tUnit.value=""; tVol.value=""; fillDisc(); fillUnits(); renderSwatches(); renderTypeList(); ovl2.classList.add("on"); typeSheet.classList.add("on"); }
   function closeTypeSheet(){ ovl2.classList.remove("on"); typeSheet.classList.remove("on"); }
   ovl2.addEventListener("click",closeTypeSheet);
   document.getElementById("typeCloseBtn").addEventListener("click",closeTypeSheet);
@@ -859,7 +931,7 @@
       if(!el){ el={id:"u"+(typeSeq++), short:name, color:PALETTE[palIdx++ % PALETTE.length], disc:disc, unit:unit||"ед.", projVol:(pv||0)};
         el.ink=inkFor(el.color); state.types.push(el); }
       else { if(disc)el.disc=disc; if(unit)el.unit=unit; if(pv!=null)el.projVol=pv; }
-      var cat={rtype:(r[4]||"Материал").trim(), name:(r[5]||"").trim(), unit:(r[6]||"").trim(), total:num(r[7]), chh:num(r[8]), price:num(r[9])};
+      var cat={rtype:(r[4]||"Материал").trim(), name:(r[5]||"").trim(), unit:(r[6]||"").trim(), total:num(r[7]), chh:num(r[8]), price:num(r[9]), prof:(r[10]||"").trim()};
       if(!cat.name) return;
       (newRes[el.id]=newRes[el.id]||[]).push(cat); count++;
     });
