@@ -78,6 +78,10 @@
   .labcell{flex:0 0 var(--weekW);display:flex;align-items:center;justify-content:center;
     font-size:11px;font-weight:800;color:var(--muted);border-left:1px solid var(--grid)}
   .labcell.has{color:#fff}
+  .labrow.labtot{border-top:1.5px solid var(--grid-strong);background:#f3f6fb}
+  .labcell.tot{color:var(--ink);font-weight:800}
+  .labcell.tot.has{background:#2C3E50;color:#fff}
+  .lablabel>i.tot{background:#2C3E50;color:#fff;width:auto;height:16px;top:4px;padding:0 5px;border-radius:5px;font-size:10px;font-weight:800;line-height:16px;text-align:center}
 
   .today{position:absolute;top:0;bottom:0;width:2px;background:var(--today);z-index:6;pointer-events:none}
   .today::before{content:"сегодня";position:absolute;top:2px;left:4px;font-size:9px;font-weight:700;
@@ -264,7 +268,7 @@
   </div>
   <div class="fields">
     <div class="field"><label>Пояснение</label><input id="fNote" placeholder="Что делаем"></div>
-    <div class="field"><label>Подрядчик</label><input id="fContr" placeholder="Бригада / подрядчик"></div>
+    <div class="field"><label>Подрядчик</label><input id="fContr" placeholder="Подрядчик" list="contrOpts" autocomplete="off"><datalist id="contrOpts"></datalist></div>
   </div>
   <button class="btn" id="matBtn" style="width:100%;margin-bottom:12px">Категории ресурса (0)</button>
   <div class="reorder">
@@ -366,7 +370,7 @@
 <script>
 (function(){
   "use strict";
-  var WEEKS=22, DAYS=WEEKS*7;
+  var WEEKS=53, DAYS=WEEKS*7;
   var ZOOMS=[5,8,12,18], zi=2;
   var DAYW=ZOOMS[zi], WEEKW=DAYW*7, ROWH=36, BARH=28, GHEAD=24, HEADERH=46;
   var STORE_KEY="gantt_board_v1";
@@ -404,31 +408,31 @@
   function pkgCost(b){ return pkgResources(b).reduce(function(s,r){return s+(r.cost||0);},0); }
   function elemBudget(id){ return elemRes(id).reduce(function(s,r){ return s+((num(r.price)||0)*(num(r.total)||0)); },0); }
   function objBudget(){ return allTypes().reduce(function(s,t){ return s+elemBudget(t.id); },0); }
-  // чел-ч работ пакета по специальностям
-  function pkgWorkMH(b){
-    var share=pkgShare(b); var out=[];
+  // суммарные чел-ч работ пакета (универсальный «рабочий», без специальностей)
+  function pkgTotalWorkMH(b){
+    var share=pkgShare(b), mh=0;
     elemRes(b.typeId).forEach(function(r,i){
       if(r.rtype!=="Работа") return;
       var ov=(b.resOv && b.resOv[i]!=null)?num(b.resOv[i]):null;
       var qty=(ov!=null?ov:(num(r.total)||0)*share);
-      var mh=(num(r.chh)||0)*qty;
-      if(mh>0) out.push({prof:(r.prof||"Рабочие"), mh:mh});
+      mh+=(num(r.chh)||0)*qty;
     });
-    return out;
+    return mh;
   }
   var WORKWEEK=40; // 5 дней × 8 ч
+  var DEFCONTR="Подрядчик";
   function computeLabor(){
     var weeks=[]; for(var w=0;w<WEEKS;w++) weeks.push({});
-    var profs={}, porder=[];
+    var contrs={}, corder=[];
     state.bars.forEach(function(b){
       if(b.typeId===null) return; var span=b.end-b.start; if(span<=0) return;
-      pkgWorkMH(b).forEach(function(x){
-        var per=x.mh/span;
-        for(var d=b.start; d<b.end; d++){ var w=Math.floor(d/7); if(w<0||w>=WEEKS) continue; weeks[w][x.prof]=(weeks[w][x.prof]||0)+per; }
-        if(!profs[x.prof]){ profs[x.prof]=porder.length; porder.push(x.prof); }
-      });
+      var mh=pkgTotalWorkMH(b); if(mh<=0) return;
+      var c=(b.contr&&b.contr.trim())?b.contr.trim():DEFCONTR;
+      var per=mh/span;
+      for(var d=b.start; d<b.end; d++){ var w=Math.floor(d/7); if(w<0||w>=WEEKS) continue; weeks[w][c]=(weeks[w][c]||0)+per; }
+      if(!contrs[c]){ contrs[c]=1; corder.push(c); }
     });
-    return {weeks:weeks, profs:porder};
+    return {weeks:weeks, contrs:corder};
   }
   function pkgDonePct(b){ var pv=num(b.pkgVol)||0, f=num(b.fact)||0; return pv>0?Math.max(0,Math.min(100,f/pv*100)):0; }
   // трудоёмкость: сумма по категориям-работам (чел-ч/ед × объём категории на элемент)
@@ -455,7 +459,7 @@
   function startOfDay(d){ return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
   var today=startOfDay(new Date());
   var dow=(today.getDay()+6)%7;
-  var anchor=new Date(today); anchor.setDate(anchor.getDate()-dow);
+  var anchor=new Date(today); anchor.setDate(anchor.getDate()-dow-26*7);
   function addDays(d,n){ var x=new Date(d); x.setDate(x.getDate()+n); return x; }
   function dayToDate(i){ return addDays(anchor,i); }
   function dateToDay(d){ return Math.round((startOfDay(d)-anchor)/86400000); }
@@ -625,28 +629,28 @@
   }
   var PROFCOL=["#C0392B","#2980B9","#16A085","#8E44AD","#E67E22","#2C3E50","#D81B60"];
   function renderLabor(){
-    var L=computeLabor(); if(!L.profs.length) return;
+    var L=computeLabor(); if(!L.contrs.length) return;
     var wrap=document.createElement("div"); wrap.className="labor"; wrap.style.width=(DAYS*DAYW)+"px";
     var head=document.createElement("div"); head.className="dhead labhead";
-    var leg='<span>👷 Рабочих в неделю (сред.):</span>';
-    L.profs.forEach(function(prof,pi){ leg+=' <span class="legit"><span class="chip" style="background:'+PROFCOL[pi%PROFCOL.length]+'"></span>'+escapeHtml(prof)+'</span>'; });
+    var leg='<span>👷 Рабочих в неделю (сред.) по подрядчикам:</span>';
+    L.contrs.forEach(function(c,ci){ leg+=' <span class="legit"><span class="chip" style="background:'+PROFCOL[ci%PROFCOL.length]+'"></span>'+escapeHtml(c)+'</span>'; });
     head.innerHTML='<div class="dlabel lableg">'+leg+'</div>';
     wrap.appendChild(head);
-    L.profs.forEach(function(prof,pi){
+    L.contrs.forEach(function(c,ci){
       var row=document.createElement("div"); row.className="labrow";
-      var lab=document.createElement("div"); lab.className="lablabel";
-      lab.innerHTML='<i style="background:'+PROFCOL[pi%PROFCOL.length]+'"></i>';
-      row.appendChild(lab);
+      var lab=document.createElement("div"); lab.className="lablabel"; lab.innerHTML='<i style="background:'+PROFCOL[ci%PROFCOL.length]+'"></i>'; row.appendChild(lab);
       var cells=document.createElement("div"); cells.className="labcells";
-      for(var w=0; w<WEEKS; w++){
-        var mh=L.weeks[w][prof]||0; var n=mh>0?Math.ceil(mh/WORKWEEK):0;
-        var c=document.createElement("div"); c.className="labcell"+(n>0?" has":""); c.textContent=n>0?n:"";
-        if(n>0) c.style.background=PROFCOL[pi%PROFCOL.length];
-        cells.appendChild(c);
-      }
-      row.appendChild(cells);
-      wrap.appendChild(row);
+      for(var w=0; w<WEEKS; w++){ var mh=L.weeks[w][c]||0; var n=mh>0?Math.ceil(mh/WORKWEEK):0;
+        var cc=document.createElement("div"); cc.className="labcell"+(n>0?" has":""); cc.textContent=n>0?n:""; if(n>0) cc.style.background=PROFCOL[ci%PROFCOL.length]; cells.appendChild(cc); }
+      row.appendChild(cells); wrap.appendChild(row);
     });
+    // Итого (сумма людей по всем подрядчикам)
+    var trow=document.createElement("div"); trow.className="labrow labtot";
+    var tlab=document.createElement("div"); tlab.className="lablabel"; tlab.innerHTML='<i class="tot">Σ</i>'; trow.appendChild(tlab);
+    var tcells=document.createElement("div"); tcells.className="labcells";
+    for(var w=0; w<WEEKS; w++){ var sum=0; L.contrs.forEach(function(c){ var mh=L.weeks[w][c]||0; if(mh>0) sum+=Math.ceil(mh/WORKWEEK); });
+      var cc=document.createElement("div"); cc.className="labcell tot"+(sum>0?" has":""); cc.textContent=sum>0?sum:""; tcells.appendChild(cc); }
+    trow.appendChild(tcells); wrap.appendChild(trow);
     groupsEl.appendChild(wrap);
   }
   var ROLLH=14, L1ROWH=24;
@@ -728,7 +732,13 @@
     fDone.value=(num(editing.pkgVol)&&num(editing.fact)!=null)?(Math.round(pkgDonePct(editing))+" %"):"";
     pvInfo.textContent = (el.id!==null)?("Проект: "+(pv||0)+" "+(el.unit||"")+(v!=null&&pv>0?("  ·  доля "+(Math.round(v/pv*1000)/10)+"%"):"")):"Выберите элемент";
   }
-  function openEditor(b){ editing=b; buildTypeChips(); fNote.value=b.note||""; fContr.value=b.contr||""; markSelected(); refreshPkg(); updateMatBtn(); ovl.classList.add("on"); sheet.classList.add("on"); }
+  function fillContractors(){
+    var dl=document.getElementById("contrOpts"); if(!dl) return; var seen={}, out=[];
+    state.bars.forEach(function(b){ var c=(b.contr||"").trim(); if(c&&!seen[c.toLowerCase()]){ seen[c.toLowerCase()]=1; out.push(c); } });
+    out.sort(function(a,b){return a.localeCompare(b,"ru");});
+    dl.innerHTML=""; out.forEach(function(c){ var o=document.createElement("option"); o.value=c; dl.appendChild(o); });
+  }
+  function openEditor(b){ editing=b; buildTypeChips(); fNote.value=b.note||""; fContr.value=b.contr||""; fillContractors(); markSelected(); refreshPkg(); updateMatBtn(); ovl.classList.add("on"); sheet.classList.add("on"); }
   function moveBar(dir){
     if(!editing) return; var known=knownIdSet();
     var grp=state.bars.filter(function(b){ return effTypeId(b,known)===effTypeId(editing,known); }).sort(function(a,b){return a.order-b.order;});
@@ -1179,7 +1189,7 @@
   buildHeader(); buildTypeChips();
   load(function(){
     render();
-    var sc=document.getElementById("scroll"); sc.scrollLeft=Math.max(0,todayDay*DAYW-40);
+    var sc=document.getElementById("scroll"); sc.scrollLeft=Math.max(0,todayDay*DAYW - sc.clientWidth/2);
     setTimeout(function(){ toast("Загрузи справочник (меню «⋯»), затем на полосе выбери элемент и объём."); },400);
   });
   window.addEventListener("resize",render);
