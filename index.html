@@ -67,6 +67,12 @@
   .chip{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
   .gcount{color:var(--muted);font-weight:600}
   .grows{position:relative}
+  .dhead{height:26px;display:flex;align-items:center;position:relative;background:#eef2f8;border-bottom:1px solid var(--grid-strong);cursor:pointer}
+  .dlabel{position:sticky;left:0;display:inline-flex;align-items:center;gap:7px;padding:0 10px;height:26px;
+    font-size:12px;font-weight:800;color:#2F5496;background:linear-gradient(90deg,#eef2f8 82%,rgba(238,242,248,0));z-index:4;max-width:100vw}
+  .dlabel .dcaret{transition:transform .15s;display:inline-block}
+  .dhead.collapsed .dcaret{transform:rotate(-90deg)}
+  .dcount{color:var(--muted);font-weight:600}
 
   .bar{position:absolute;height:var(--barH);border-radius:7px;display:flex;align-items:center;
     padding:0 15px;color:#fff;font-size:11.5px;font-weight:600;line-height:1;
@@ -150,6 +156,14 @@
   .pbar{display:block;height:8px;border-radius:5px;background:var(--grid-strong);overflow:hidden}
   .pbar>span{display:block;height:100%;background:#27AE60;border-radius:5px}
   .kpibig .pbar{background:rgba(255,255,255,.3)}.kpibig .pbar>span{background:#fff}
+  .cftabs{display:flex;gap:8px;margin-bottom:10px}
+  .cftab{flex:1;padding:9px;border:1.5px solid var(--grid-strong);border-radius:10px;background:#fff;font-size:14px;font-weight:700;color:var(--muted)}
+  .cftab.on{background:#2F5496;color:#fff;border-color:#2F5496}
+  .cfrow{display:flex;align-items:center;gap:8px;padding:5px 0}
+  .cflab{flex:0 0 64px;font-size:12px;font-weight:700;color:var(--ink)}
+  .cfbarwrap{flex:1;background:var(--grid);border-radius:5px;height:16px;overflow:hidden}
+  .cfbar{display:block;height:100%;background:linear-gradient(90deg,#2F5496,#4f86d6);border-radius:5px}
+  .cfamt{flex:0 0 auto;font-size:12px;font-weight:700;color:#2F5496;min-width:70px;text-align:right}
   .fields{display:flex;flex-direction:column;gap:9px;margin-bottom:14px}
   .field label{display:block;font-size:11px;color:var(--muted);font-weight:650;margin:0 0 4px 2px}
   .field input{width:100%;border:1.5px solid var(--grid-strong);border-radius:10px;padding:11px 12px;
@@ -187,7 +201,8 @@
 <div class="menu" id="menu">
   <button data-act="types">Элементы</button>
   <button data-act="spec">Справочник (импорт)</button>
-  <button data-act="kpi">📊 Показатели (готовность)</button>
+  <button data-act="kpi">📊 Показатели (готовность · бюджет)</button>
+  <button data-act="cashflow">💸 Кэшфло (недели / месяцы)</button>
   <button data-act="summary">Сводка: категории и готовность</button>
   <div class="sep"></div>
   <button data-act="export">Экспорт в файл</button>
@@ -295,6 +310,21 @@
   <button class="btn" id="kpiCloseBtn" style="width:100%;margin-top:12px">Закрыть</button>
 </div>
 
+<div class="ovl" id="ovl7"></div>
+<div class="sheet" id="cfSheet">
+  <div class="grab"></div>
+  <h2>Кэшфло (равномерно по пакетам)</h2>
+  <div class="cftabs">
+    <button class="cftab on" data-m="week">По неделям</button>
+    <button class="cftab" data-m="month">По месяцам</button>
+  </div>
+  <div class="cfview" id="cfView"></div>
+  <div class="row">
+    <button class="btn primary" id="cfExportBtn" style="flex:1">Экспорт CSV</button>
+    <button class="btn" id="cfCloseBtn" style="flex:1">Закрыть</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -335,11 +365,14 @@
     var list=elemRes(b.typeId).map(function(r,i){
       var ov=(b.resOv && b.resOv[i]!=null)?num(b.resOv[i]):null;
       var qty=(ov!=null?ov:(num(r.total)||0)*share);
-      return {rtype:r.rtype, name:r.name, unit:r.unit, qty:qty, idx:i, over:(ov!=null)};
+      return {rtype:r.rtype, name:r.name, unit:r.unit, qty:qty, price:num(r.price), cost:(num(r.price)||0)*qty, idx:i, over:(ov!=null)};
     });
-    (b.mats||[]).forEach(function(m,j){ list.push({rtype:m.rtype||"Материал", name:m.name, unit:m.unit, qty:(num(m.qty)||0), manual:j, over:false}); });
+    (b.mats||[]).forEach(function(m,j){ list.push({rtype:m.rtype||"Материал", name:m.name, unit:m.unit, qty:(num(m.qty)||0), price:null, cost:0, manual:j, over:false}); });
     return list;
   }
+  function pkgCost(b){ return pkgResources(b).reduce(function(s,r){return s+(r.cost||0);},0); }
+  function elemBudget(id){ return elemRes(id).reduce(function(s,r){ return s+((num(r.price)||0)*(num(r.total)||0)); },0); }
+  function objBudget(){ return allTypes().reduce(function(s,t){ return s+elemBudget(t.id); },0); }
   function pkgDonePct(b){ var pv=num(b.pkgVol)||0, f=num(b.fact)||0; return pv>0?Math.max(0,Math.min(100,f/pv*100)):0; }
   // трудоёмкость: сумма по категориям-работам (чел-ч/ед × объём категории на элемент)
   function elemTotalMH(id){ return elemRes(id).reduce(function(s,r){ return s + (r.rtype==="Работа"?((num(r.chh)||0)*(num(r.total)||0)):0); },0); }
@@ -442,9 +475,10 @@
   function flashSaved(){ if(!statusEl)return; statusEl.classList.add("on"); if(statusT)clearTimeout(statusT);
     statusT=setTimeout(function(){ statusEl.classList.remove("on"); },1400); }
 
+  function applyZoomVars(){ var rs=document.documentElement.style; rs.setProperty("--weekW",WEEKW+"px"); rs.setProperty("--dayW",DAYW+"px"); }
   function setZoom(newi){
     var sc=document.getElementById("scroll"); var center=(sc.scrollLeft+sc.clientWidth/2)/DAYW;
-    zi=(newi+ZOOMS.length)%ZOOMS.length; DAYW=ZOOMS[zi]; WEEKW=DAYW*7;
+    zi=(newi+ZOOMS.length)%ZOOMS.length; DAYW=ZOOMS[zi]; WEEKW=DAYW*7; applyZoomVars();
     try{ lsSet("gantt_zoom", ""+zi); }catch(e){}
     buildHeader(); render();
     sc.scrollLeft=Math.max(0, center*DAYW - sc.clientWidth/2);
@@ -475,20 +509,39 @@
     var l=el.querySelector('.lbl'); if(l) l.textContent=barText(b);
     var f=el.querySelector('.prog'); if(f) f.style.width=pkgDonePct(b)+"%"; }
   function escapeHtml(s){ return (s||"").replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];}); }
+  var collapsed={}; try{ collapsed=JSON.parse(lsGet("gantt_collapsed")||"{}")||{}; }catch(e){ collapsed={}; }
+  function discOf(t){ return (t.id===null? "Без дисциплины" : (t.disc||"Без дисциплины")); }
+  function toggleDisc(d){ collapsed[d]=!collapsed[d]; try{ lsSet("gantt_collapsed",JSON.stringify(collapsed)); }catch(e){} render(); }
   function render(){
     groupsEl.style.width=(DAYS*DAYW)+"px"; groupsEl.innerHTML="";
     var known=knownIdSet();
+    // элементы с полосами, сгруппированные по дисциплине (в порядке groupOrder)
+    var discList=[], byDisc={};
     groupOrder().forEach(function(t){
       var bars=state.bars.filter(function(b){return effTypeId(b,known)===t.id;}).sort(function(a,b){return a.order-b.order;});
       if(!bars.length) return;
-      var g=document.createElement("div"); g.className="group";
-      var head=document.createElement("div"); head.className="ghead";
-      var lab=document.createElement("div"); lab.className="glabel";
-      lab.innerHTML='<span class="chip" style="background:'+t.color+'"></span><span>'+t.short+'</span><span class="gcount">'+bars.length+'</span>';
-      head.appendChild(lab); g.appendChild(head);
-      var rows=document.createElement("div"); rows.className="grows"; rows.style.height=(bars.length*ROWH)+"px";
-      bars.forEach(function(b,ri){ rows.appendChild(makeBar(b,ri,t)); });
-      g.appendChild(rows); groupsEl.appendChild(g);
+      var d=discOf(t);
+      if(!byDisc[d]){ byDisc[d]={items:[],count:0}; discList.push(d); }
+      byDisc[d].items.push({t:t,bars:bars}); byDisc[d].count+=bars.length;
+    });
+    discList.forEach(function(d){
+      var isC=!!collapsed[d];
+      var dh=document.createElement("div"); dh.className="dhead"+(isC?" collapsed":"");
+      dh.innerHTML='<div class="dlabel"><span class="dcaret">▾</span><span>'+escapeHtml(d)+'</span><span class="dcount">'+byDisc[d].items.length+' эл · '+byDisc[d].count+' пак</span></div>';
+      dh.addEventListener("click",function(){ toggleDisc(d); });
+      groupsEl.appendChild(dh);
+      if(isC) return;
+      byDisc[d].items.forEach(function(it){
+        var t=it.t, bars=it.bars;
+        var g=document.createElement("div"); g.className="group";
+        var head=document.createElement("div"); head.className="ghead";
+        var lab=document.createElement("div"); lab.className="glabel";
+        lab.innerHTML='<span class="chip" style="background:'+t.color+'"></span><span>'+t.short+'</span><span class="gcount">'+bars.length+'</span>';
+        head.appendChild(lab); g.appendChild(head);
+        var rows=document.createElement("div"); rows.className="grows"; rows.style.height=(bars.length*ROWH)+"px";
+        bars.forEach(function(b,ri){ rows.appendChild(makeBar(b,ri,t)); });
+        g.appendChild(rows); groupsEl.appendChild(g);
+      });
     });
     var minH=document.getElementById("scroll").clientHeight-HEADERH;
     groupsEl.style.minHeight=(groupsEl.offsetHeight<minH?minH:0)+"px";
@@ -651,6 +704,7 @@
   menu.addEventListener("click",function(e){ var act=e.target&&e.target.dataset?e.target.dataset.act:null; if(!act)return; menu.classList.remove("on");
     if(act==="types") openTypeSheet();
     else if(act==="kpi") openKpi();
+    else if(act==="cashflow") openCashflow();
     else if(act==="spec") openSpecSheet();
     else if(act==="summary") openSummary();
     else if(act==="export") exportJson();
@@ -674,6 +728,7 @@
   var ovl4=document.getElementById("ovl4"), specSheet=document.getElementById("specSheet");
   var ovl5=document.getElementById("ovl5"), sumSheet=document.getElementById("sumSheet");
   function fmtNum(n){ return (Math.round(n*1000)/1000).toString().replace(".",","); }
+  function fmtMoney(n){ return Math.round(n||0).toLocaleString("ru-RU"); }
   function updateMatBtn(){ var btn=document.getElementById("matBtn"); if(btn&&editing) btn.textContent="Категории ресурса ("+pkgResources(editing).length+")"; }
   function matTotalsText(b){ var t=typeById(b.typeId); var d=pkgDonePct(b);
     return "Объём пакета: "+(b.pkgVol||0)+" "+(t.unit||"")+(num(b.pkgVol)?("   ·   доля "+fmtNum(pkgShare(b)*100)+"%"):"")+(d>0?("   ·   готово "+Math.round(d)+"%"):""); }
@@ -745,7 +800,7 @@
       if(!el){ el={id:"u"+(typeSeq++), short:name, color:PALETTE[palIdx++ % PALETTE.length], disc:disc, unit:unit||"ед.", projVol:(pv||0)};
         el.ink=inkFor(el.color); state.types.push(el); }
       else { if(disc)el.disc=disc; if(unit)el.unit=unit; if(pv!=null)el.projVol=pv; }
-      var cat={rtype:(r[4]||"Материал").trim(), name:(r[5]||"").trim(), unit:(r[6]||"").trim(), total:num(r[7]), chh:num(r[8])};
+      var cat={rtype:(r[4]||"Материал").trim(), name:(r[5]||"").trim(), unit:(r[6]||"").trim(), total:num(r[7]), chh:num(r[8]), price:num(r[9])};
       if(!cat.name) return;
       (newRes[el.id]=newRes[el.id]||[]).push(cat); count++;
     });
@@ -840,16 +895,19 @@
     var v=document.getElementById("kpiView"); v.innerHTML=""; var d=readiness();
     if(d.objTot<=0){ v.innerHTML='<div style="color:var(--muted);font-size:13px;padding:10px 2px">Нет данных. Загрузите справочник (с чел-ч у работ) и введите факт по пакетам.</div>'; ovl6.classList.add("on"); kpiSheet.classList.add("on"); return; }
     var big=document.createElement("div"); big.className="kpibig";
-    big.innerHTML='<div class="kpit">Строительная готовность объекта</div><div class="kpin">'+fmtNum(d.objPct)+' %</div>'+
+    big.innerHTML='<div class="kpit">Строительная готовность объекта</div><div class="kpin">'+fmtPct(d.objPct)+' %</div>'+
       '<div class="kpisub">освоено '+fmtNum(Math.round(d.objEarned))+' из '+fmtNum(Math.round(d.objTot))+' чел-ч</div>'+bar(d.objPct);
     v.appendChild(big);
+    var bud=objBudget();
+    if(bud>0){ var kb=document.createElement("div"); kb.className="sumtot"; kb.style.marginBottom="10px";
+      kb.innerHTML='<div>Прогнозный бюджет</div><div><b>'+fmtMoney(bud)+' ₽</b></div>'; v.appendChild(kb); }
     var h1=document.createElement("div"); h1.className="svhead"; h1.innerHTML='<span>По дисциплинам</span>'; v.appendChild(h1);
     d.byDisc.forEach(function(x){ var row=document.createElement("div"); row.className="kpirow";
       row.innerHTML='<div class="kpil"><span>'+escapeHtml(x.name)+'</span><b>'+fmtPct(x.pct)+' %</b></div>'+bar(x.pct)+'<div class="kpix">'+fmtNum(Math.round(x.earned))+' / '+fmtNum(Math.round(x.tot))+' чел-ч</div>'; v.appendChild(row); });
     var h2=document.createElement("div"); h2.className="svhead"; h2.style.marginTop="10px"; h2.innerHTML='<span>По элементам</span>'; v.appendChild(h2);
     d.byEl.forEach(function(x){ var row=document.createElement("div"); row.className="kpirow";
       row.innerHTML='<div class="kpil"><span>'+escapeHtml(x.name)+'</span><b>'+fmtPct(x.pct)+' %</b></div>'+bar(x.pct)+'<div class="kpix">факт '+fmtNum(x.fact)+' / '+fmtNum(x.proj)+' '+escapeHtml(x.unit||"")+' · '+fmtNum(Math.round(x.earned))+' / '+fmtNum(Math.round(x.tot))+' чел-ч</div>'; v.appendChild(row); });
-    var note=document.createElement("div"); note.style.cssText="color:var(--muted);font-size:12px;padding:10px 2px 0"; note.textContent="Готовность считается по освоенным чел-ч (вес каждой работы — её трудоёмкость). Бюджет и приросты за период добавим следующим шагом.";
+    var note=document.createElement("div"); note.style.cssText="color:var(--muted);font-size:12px;padding:10px 2px 0"; note.textContent="Готовность — по освоенным чел-ч (вес работы = её трудоёмкость). Прогнозный бюджет — из справочника. Приросты за период добавим снимками по датам.";
     v.appendChild(note);
     ovl6.classList.add("on"); kpiSheet.classList.add("on");
   }
@@ -858,6 +916,64 @@
   document.getElementById("kpiCloseBtn").addEventListener("click",closeKpi);
   attachSheetDrag(document.querySelector("#kpiSheet .grab"), kpiSheet, closeKpi);
 
+  // ---- кэшфло (равномерно по времени пакета) ----
+  var ovl7=document.getElementById("ovl7"), cfSheet=document.getElementById("cfSheet"), cfMode="week";
+  function computeCashflow(mode){
+    var days=new Array(DAYS+1).join("0").split("").map(function(){return 0;}); // 0..DAYS-1
+    state.bars.forEach(function(b){
+      var cost=pkgCost(b); if(cost<=0) return;
+      var s=Math.max(0,b.start), e=Math.min(DAYS,b.end); var span=e-s; if(span<=0) return;
+      var per=cost/span; for(var d=s; d<e; d++) days[d]+=per;
+    });
+    var buckets=[], idx={};
+    for(var d=0; d<DAYS; d++){ if(days[d]<=0 && !idx.hasOwnProperty(keyFor(d,mode))){} var k=keyFor(d,mode);
+      if(!idx.hasOwnProperty(k)){ idx[k]=buckets.length; buckets.push({key:k,label:labelFor(d,mode),amount:0}); }
+      buckets[idx[k]].amount+=days[d];
+    }
+    // оставляю только диапазон с деньгами (обрезаю пустые хвосты по краям)
+    var first=0,last=buckets.length-1;
+    while(first<buckets.length && buckets[first].amount<=0.5) first++;
+    while(last>=0 && buckets[last].amount<=0.5) last--;
+    var out = (first<=last)? buckets.slice(first,last+1) : [];
+    var cum=0, total=0; out.forEach(function(x){ cum+=x.amount; x.cum=cum; }); total=cum;
+    return {rows:out, total:total};
+  }
+  function keyFor(d,mode){ if(mode==="week") return "w"+Math.floor(d/7); var dt=dayToDate(d); return "m"+dt.getFullYear()+"-"+dt.getMonth(); }
+  function labelFor(d,mode){ if(mode==="week") return ddmm(dayToDate(Math.floor(d/7)*7)); var dt=dayToDate(d); return MONTHS[dt.getMonth()].slice(0,3)+" "+dt.getFullYear(); }
+  function openCashflow(){ renderCashflow(); ovl7.classList.add("on"); cfSheet.classList.add("on"); }
+  function closeCashflow(){ ovl7.classList.remove("on"); cfSheet.classList.remove("on"); }
+  function renderCashflow(){
+    var v=document.getElementById("cfView"); v.innerHTML=""; var cf=computeCashflow(cfMode);
+    if(!cf.rows.length){ v.innerHTML='<div style="color:var(--muted);font-size:13px;padding:10px 2px">Нет оплат: у пакетов нет стоимости (нужна цена категорий в справочнике) или не заданы сроки.</div>'; return; }
+    var tot=document.createElement("div"); tot.className="sumtot"; tot.style.marginBottom="10px";
+    tot.innerHTML='<div>Итого за период</div><div><b>'+fmtMoney(cf.total)+' ₽</b></div>'; v.appendChild(tot);
+    var mx=cf.rows.reduce(function(m,x){return Math.max(m,x.amount);},0)||1;
+    cf.rows.forEach(function(x){ var row=document.createElement("div"); row.className="cfrow";
+      row.innerHTML='<div class="cflab">'+escapeHtml(x.label)+'</div>'+
+        '<div class="cfbarwrap"><span class="cfbar" style="width:'+(x.amount/mx*100)+'%"></span></div>'+
+        '<div class="cfamt">'+fmtMoney(x.amount)+'</div>'; v.appendChild(row);
+    });
+    var note=document.createElement("div"); note.style.cssText="color:var(--muted);font-size:12px;padding:8px 2px 0"; note.textContent="Оплата каждого пакета распределена равномерно по его срокам. Накопительно к концу: "+fmtMoney(cf.total)+" ₽.";
+    v.appendChild(note);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".cftab"),function(btn){
+    btn.addEventListener("click",function(){ cfMode=btn.dataset.m;
+      Array.prototype.forEach.call(document.querySelectorAll(".cftab"),function(x){ x.classList.toggle("on",x===btn); });
+      renderCashflow(); });
+  });
+  ovl7.addEventListener("click",closeCashflow);
+  document.getElementById("cfCloseBtn").addEventListener("click",closeCashflow);
+  attachSheetDrag(document.querySelector("#cfSheet .grab"), cfSheet, closeCashflow);
+  document.getElementById("cfExportBtn").addEventListener("click",function(){
+    var cf=computeCashflow(cfMode); if(!cf.rows.length){ toast("Нет данных"); return; }
+    var lines=[(cfMode==="week"?"Неделя":"Месяц")+";Оплата, руб;Накопительно, руб"];
+    cf.rows.forEach(function(x){ lines.push(x.label+";"+Math.round(x.amount)+";"+Math.round(x.cum)); });
+    lines.push("ИТОГО;"+Math.round(cf.total)+";");
+    try{ var blob=new Blob(["\uFEFF"+lines.join("\r\n")],{type:"text/csv"}); var url=URL.createObjectURL(blob);
+      var a=document.createElement("a"); a.href=url; a.download="cashflow-"+cfMode+"-"+iso(today)+".csv"; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){URL.revokeObjectURL(url);},1000); toast("CSV сохранён"); }catch(e){ toast("Не удалось выгрузить"); }
+  });
+
   // ---- toast ----
   var toastEl=document.getElementById("toast"), toastT=null;
   function toast(msg){ toastEl.textContent=msg; toastEl.classList.add("on"); if(toastT)clearTimeout(toastT); toastT=setTimeout(function(){ toastEl.classList.remove("on"); },2200); }
@@ -865,6 +981,7 @@
   // ---- init ----
   statusEl=document.getElementById("status");
   try{ var zsaved=parseInt(lsGet("gantt_zoom")); if(!isNaN(zsaved)&&zsaved>=0&&zsaved<ZOOMS.length){ zi=zsaved; DAYW=ZOOMS[zi]; WEEKW=DAYW*7; } }catch(e){}
+  applyZoomVars();
   buildHeader(); buildTypeChips();
   load(function(){
     render();
