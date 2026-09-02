@@ -1,7 +1,7 @@
 // Сервис-воркер: офлайн-режим для «Плана работ».
 // ВАЖНО: при обновлении приложения меняйте номер версии ниже (v1 -> v2 ...),
 // чтобы телефон подхватил новую версию. Данные пользователя (localStorage) это не затрагивает.
-const CACHE = 'plan-rabot-v7';
+const CACHE = 'plan-rabot-v9';
 const ASSETS = [
   './',
   './index.html',
@@ -28,6 +28,8 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
+  // внешние домены (погода и пр.) — мимо кэша, напрямую в сеть
+  try { if (new URL(req.url).origin !== self.location.origin) return; } catch (_) { return; }
   const isNav = req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html');
   if (isNav) {
     // страницу берём из сети (свежая), при отсутствии сети — из кэша

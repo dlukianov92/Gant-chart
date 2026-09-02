@@ -26,10 +26,15 @@
     -webkit-font-smoothing:antialiased;overscroll-behavior:none}
   .wrap{display:flex;flex-direction:column;height:100dvh}
 
-  .top{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--panel);
+  .top{display:flex;flex-direction:column;gap:3px;padding:8px 12px;background:var(--panel);
     border-bottom:1px solid var(--grid);z-index:20}
-  .top h1{font-size:15px;font-weight:650;margin:0;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .status{flex:1;font-size:11px;color:var(--muted);font-weight:600;opacity:0;transition:opacity .2s;white-space:nowrap}
+  .toprow{display:flex;align-items:center;gap:8px}
+  .top h1{font-size:16px;font-weight:700;margin:0;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+  .subline{display:flex;gap:10px;align-items:center;white-space:nowrap;overflow:hidden}
+  .subline .loc{font-size:11px;color:var(--muted);font-weight:600;flex:0 0 auto}
+  .subline .wx{font-size:11px;color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis}
+  .subline .wx b{font-weight:800}
+  .status{flex:0 0 auto;font-size:11px;color:var(--muted);font-weight:600;opacity:0;transition:opacity .2s;white-space:nowrap}
   .status.on{opacity:1}
   .btn{border:1px solid var(--grid-strong);background:#fff;color:var(--ink);border-radius:9px;
     padding:7px 11px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
@@ -54,6 +59,15 @@
     letter-spacing:.4px;text-transform:uppercase;color:var(--muted);border-left:1px solid var(--grid-strong)}
   .wcell{flex:0 0 var(--weekW);display:flex;align-items:center;justify-content:center;font-size:11px;
     font-weight:600;color:var(--ink);border-left:1px solid var(--grid-strong);opacity:.85}
+  .header.l1 .weeks{display:none}
+  .header.l1 .months{height:var(--headerH)}
+  .header.l1 .mcell{font-size:12px}
+  .bands{position:absolute;top:0;bottom:0;left:0;z-index:0;pointer-events:none}
+  .bands .mb{position:absolute;top:0;bottom:0}
+  .bands .mb.alt{background:rgba(47,84,150,.045)}
+  .bands .mb.edge{border-left:1px solid rgba(47,84,150,.14)}
+  .bar.roll{border-radius:8px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+  .bar.roll .lbl{font-weight:700}
 
   .today{position:absolute;top:0;bottom:0;width:2px;background:var(--today);z-index:6;pointer-events:none}
   .today::before{content:"сегодня";position:absolute;top:2px;left:4px;font-size:9px;font-weight:700;
@@ -156,6 +170,12 @@
   .pbar{display:block;height:8px;border-radius:5px;background:var(--grid-strong);overflow:hidden}
   .pbar>span{display:block;height:100%;background:#27AE60;border-radius:5px}
   .kpibig .pbar{background:rgba(255,255,255,.3)}.kpibig .pbar>span{background:#fff}
+  .kpipager{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .kpipager::-webkit-scrollbar{display:none}
+  .kpipage{flex:0 0 100%;width:100%;scroll-snap-align:start;padding-right:2px}
+  .kpidots{display:flex;gap:8px;justify-content:center;margin-top:12px}
+  .kpidots .kd{font-size:12px;font-weight:700;color:var(--muted);padding:5px 12px;border-radius:20px;background:var(--grid);cursor:pointer}
+  .kpidots .kd.on{background:#2F5496;color:#fff}
   .cftabs{display:flex;gap:8px;margin-bottom:10px}
   .cftab{flex:1;padding:9px;border:1.5px solid var(--grid-strong);border-radius:10px;background:#fff;font-size:14px;font-weight:700;color:var(--muted)}
   .cftab.on{background:#2F5496;color:#fff;border-color:#2F5496}
@@ -183,15 +203,20 @@
 <body>
 <div class="wrap">
   <div class="top">
-    <h1>План работ</h1>
-    <span class="status" id="status">Сохранено</span>
-    <button class="btn ghost" id="zoomBtn" aria-label="Масштаб">⇔</button>
-    <button class="btn" id="addBtn">+ Полоса</button>
-    <button class="btn ghost" id="menuBtn" aria-label="Меню">&#8943;</button>
+    <div class="toprow">
+      <h1>Блок Б</h1>
+      <span class="status" id="status">Сохранено</span>
+      <button class="btn ghost" id="viewBtn" aria-label="Уровень">L2</button>
+      <button class="btn ghost" id="zoomBtn" aria-label="Масштаб">⇔</button>
+      <button class="btn" id="addBtn" aria-label="Добавить полосу">+</button>
+      <button class="btn ghost" id="menuBtn" aria-label="Меню">&#8943;</button>
+    </div>
+    <div class="subline"><span class="loc">пос. Тургояк, Миасс</span><span class="wx" id="wx">погода…</span></div>
   </div>
   <div class="scroll" id="scroll">
     <div class="canvas" id="canvas">
       <div class="header" id="header"></div>
+      <div class="bands" id="bands"></div>
       <div class="today" id="today"></div>
       <div class="groups" id="groups"></div>
     </div>
@@ -337,12 +362,7 @@
 
   var DISCIPLINES=["Общестроительные работы","Архитектура","Трубопроводы","Электрика","Механика"];
   // Элемент: {id, short(имя), color, ink, disc(дисциплина), unit(ед.изм.), projVol(проектный объём)}
-  var BUILTIN=[
-    {id:"klad",  short:"Кладка",            color:"#4472C4", ink:"#fff", disc:"Общестроительные работы", unit:"м³", projVol:0},
-    {id:"armo",  short:"Армопояс",          color:"#70AD47", ink:"#fff", disc:"Общестроительные работы", unit:"м³", projVol:0},
-    {id:"plity", short:"Плиты + анкеровка", color:"#ED7D31", ink:"#fff", disc:"Общестроительные работы", unit:"шт", projVol:0},
-    {id:"omono", short:"Омоноличивание",    color:"#FFC000", ink:"#3a2f00",disc:"Общестроительные работы", unit:"м³", projVol:0}
-  ];
+  var BUILTIN=[];  // встроенные элементы убраны — только из справочника
   var NONE={id:null, short:"Без вида", color:"#9aa0a6", ink:"#fff", disc:"", unit:"", projVol:0};
   var PALETTE=["#8E44AD","#2980B9","#16A085","#27AE60","#F39C12","#E74C3C","#D81B60","#00838F","#5D4037","#546E7A"];
   function inkFor(hex){ var c=(hex||"#888").replace("#",""); if(c.length===3)c=c.split("").map(function(x){return x+x;}).join("");
@@ -485,18 +505,32 @@
     toast("Масштаб: "+["очень мелкий","мелкий","обычный","крупный"][zi]);
   }
   // ---- header ----
+  var viewMode="L2"; try{ var vm=lsGet("gantt_view"); if(vm==="L1"||vm==="L2") viewMode=vm; }catch(e){}
   function buildHeader(){
     var header=document.getElementById("header"); var totalW=DAYS*DAYW;
     document.getElementById("canvas").style.width=totalW+"px"; header.style.width=totalW+"px";
+    header.className="header"+(viewMode==="L1"?" l1":"");
     var months=document.createElement("div"); months.className="months"; var i=0;
     while(i<WEEKS){ var m=dayToDate(i*7).getMonth(); var span=0;
       while(i+span<WEEKS && dayToDate((i+span)*7).getMonth()===m) span++;
       var cell=document.createElement("div"); cell.className="mcell"; cell.style.width=(span*WEEKW)+"px"; cell.textContent=MONTHS[m];
       if(i===0) cell.style.borderLeft="none"; months.appendChild(cell); i+=span; }
-    var weeks=document.createElement("div"); weeks.className="weeks";
-    for(var w=0;w<WEEKS;w++){ var wc=document.createElement("div"); wc.className="wcell"; wc.textContent=ddmm(dayToDate(w*7)); weeks.appendChild(wc); }
-    header.innerHTML=""; header.appendChild(months); header.appendChild(weeks);
+    header.innerHTML=""; header.appendChild(months);
+    if(viewMode==="L2"){
+      var weeks=document.createElement("div"); weeks.className="weeks";
+      for(var w=0;w<WEEKS;w++){ var wc=document.createElement("div"); wc.className="wcell"; wc.textContent=ddmm(dayToDate(w*7)); weeks.appendChild(wc); }
+      header.appendChild(weeks);
+    }
     document.getElementById("today").style.left=(todayDay*DAYW)+"px";
+    buildBands();
+  }
+  function buildBands(){
+    var bands=document.getElementById("bands"); if(!bands) return; bands.innerHTML=""; bands.style.width=(DAYS*DAYW)+"px";
+    var i=0, mi=0;
+    while(i<WEEKS){ var m=dayToDate(i*7).getMonth(); var span=0;
+      while(i+span<WEEKS && dayToDate((i+span)*7).getMonth()===m) span++;
+      var el=document.createElement("div"); el.className="mb"+(mi%2?" alt":"")+(i>0?" edge":"");
+      el.style.left=(i*7*DAYW)+"px"; el.style.width=(span*WEEKW)+"px"; bands.appendChild(el); i+=span; mi++; }
   }
 
   // ---- render ----
@@ -538,14 +572,32 @@
         var lab=document.createElement("div"); lab.className="glabel";
         lab.innerHTML='<span class="chip" style="background:'+t.color+'"></span><span>'+t.short+'</span><span class="gcount">'+bars.length+'</span>';
         head.appendChild(lab); g.appendChild(head);
-        var rows=document.createElement("div"); rows.className="grows"; rows.style.height=(bars.length*ROWH)+"px";
-        bars.forEach(function(b,ri){ rows.appendChild(makeBar(b,ri,t)); });
+        var rows=document.createElement("div"); rows.className="grows";
+        if(viewMode==="L1"){
+          rows.style.height=ROWH+"px"; rows.appendChild(makeRollupBar(t,bars));
+        } else {
+          rows.style.height=(bars.length*ROWH)+"px";
+          bars.forEach(function(b,ri){ rows.appendChild(makeBar(b,ri,t)); });
+        }
         g.appendChild(rows); groupsEl.appendChild(g);
       });
     });
     var minH=document.getElementById("scroll").clientHeight-HEADERH;
     groupsEl.style.minHeight=(groupsEl.offsetHeight<minH?minH:0)+"px";
   }
+  function makeRollupBar(t,bars){
+    var s=Math.min.apply(null,bars.map(function(b){return b.start;}));
+    var e=Math.max.apply(null,bars.map(function(b){return b.end;}));
+    var pv=num(t.projVol)||0, fact=0; bars.forEach(function(b){ fact+=(num(b.fact)||0); });
+    var done=pv>0?Math.max(0,Math.min(100,fact/pv*100)):0;
+    var el=document.createElement("div"); el.className="bar roll";
+    el.style.top=((ROWH-BARH)/2)+"px"; el.style.left=(s*DAYW)+"px";
+    el.style.width=Math.max(DAYW,(e-s)*DAYW)+"px"; el.style.background=t.color; el.style.color=t.ink;
+    var lbl=dfmt(dayToDate(s))+"–"+dfmt(dayToDate(e))+(done>0?("  ·  "+Math.round(done)+"%"):"");
+    el.innerHTML='<span class="prog" style="width:'+done+'%"></span><span class="lbl">'+escapeHtml(lbl)+'</span>';
+    return el;
+  }
+  function dfmt(d){ return ("0"+d.getDate()).slice(-2)+"."+("0"+(d.getMonth()+1)).slice(-2); }
   function makeBar(b,ri,t){
     var el=document.createElement("div"); el.className="bar"; el.dataset.id=b.id;
     el.style.top=(ri*ROWH+(ROWH-BARH)/2)+"px"; el.style.left=(b.start*DAYW)+"px";
@@ -680,6 +732,13 @@
   });
 
   document.getElementById("zoomBtn").addEventListener("click",function(){ setZoom(zi-1); });
+  var viewBtn=document.getElementById("viewBtn"); viewBtn.textContent=viewMode;
+  viewBtn.addEventListener("click",function(){
+    viewMode=(viewMode==="L2"?"L1":"L2"); viewBtn.textContent=viewMode;
+    try{ lsSet("gantt_view",viewMode); }catch(e){}
+    buildHeader(); render();
+    toast(viewMode==="L1"?"L1 — элементы одной полоской, по месяцам (для скриншота)":"L2 — пакеты по неделям");
+  });
 
   // свайп вниз за ползунок закрывает шторку
   function attachSheetDrag(grabEl, sheetEl, closeFn){
@@ -891,24 +950,50 @@
   var ovl6=document.getElementById("ovl6"), kpiSheet=document.getElementById("kpiSheet");
   function fmtPct(x){ return fmtNum(Math.round(x*10)/10); }
   function bar(pct){ return '<span class="pbar"><span style="width:'+Math.max(0,Math.min(100,pct))+'%"></span></span>'; }
+  function budgetData(){
+    var byEl=[], disc={}, dorder=[], objB=0, objE=0;
+    allTypes().forEach(function(t){
+      var bud=elemBudget(t.id); if(bud<=0) return;
+      var pv=num(t.projVol)||0, fact=elemFactVol(t.id);
+      var done=pv>0?Math.min(fact,pv)/pv:0; var earned=bud*done;
+      byEl.push({name:t.short, disc:t.disc||"—", bud:bud, earned:earned, pct:done*100});
+      objB+=bud; objE+=earned;
+      if(!disc[t.disc]){ disc[t.disc]={name:t.disc||"—",bud:0,earned:0}; dorder.push(t.disc); }
+      disc[t.disc].bud+=bud; disc[t.disc].earned+=earned;
+    });
+    var byDisc=dorder.map(function(d){ var x=disc[d]; x.pct=(x.bud>0?x.earned/x.bud*100:0); return x; });
+    return {byEl:byEl, byDisc:byDisc, objBud:objB, objEarned:objE};
+  }
   function openKpi(){
-    var v=document.getElementById("kpiView"); v.innerHTML=""; var d=readiness();
-    if(d.objTot<=0){ v.innerHTML='<div style="color:var(--muted);font-size:13px;padding:10px 2px">Нет данных. Загрузите справочник (с чел-ч у работ) и введите факт по пакетам.</div>'; ovl6.classList.add("on"); kpiSheet.classList.add("on"); return; }
-    var big=document.createElement("div"); big.className="kpibig";
-    big.innerHTML='<div class="kpit">Строительная готовность объекта</div><div class="kpin">'+fmtPct(d.objPct)+' %</div>'+
-      '<div class="kpisub">освоено '+fmtNum(Math.round(d.objEarned))+' из '+fmtNum(Math.round(d.objTot))+' чел-ч</div>'+bar(d.objPct);
-    v.appendChild(big);
-    var bud=objBudget();
-    if(bud>0){ var kb=document.createElement("div"); kb.className="sumtot"; kb.style.marginBottom="10px";
-      kb.innerHTML='<div>Прогнозный бюджет</div><div><b>'+fmtMoney(bud)+' ₽</b></div>'; v.appendChild(kb); }
-    var h1=document.createElement("div"); h1.className="svhead"; h1.innerHTML='<span>По дисциплинам</span>'; v.appendChild(h1);
-    d.byDisc.forEach(function(x){ var row=document.createElement("div"); row.className="kpirow";
-      row.innerHTML='<div class="kpil"><span>'+escapeHtml(x.name)+'</span><b>'+fmtPct(x.pct)+' %</b></div>'+bar(x.pct)+'<div class="kpix">'+fmtNum(Math.round(x.earned))+' / '+fmtNum(Math.round(x.tot))+' чел-ч</div>'; v.appendChild(row); });
-    var h2=document.createElement("div"); h2.className="svhead"; h2.style.marginTop="10px"; h2.innerHTML='<span>По элементам</span>'; v.appendChild(h2);
-    d.byEl.forEach(function(x){ var row=document.createElement("div"); row.className="kpirow";
-      row.innerHTML='<div class="kpil"><span>'+escapeHtml(x.name)+'</span><b>'+fmtPct(x.pct)+' %</b></div>'+bar(x.pct)+'<div class="kpix">факт '+fmtNum(x.fact)+' / '+fmtNum(x.proj)+' '+escapeHtml(x.unit||"")+' · '+fmtNum(Math.round(x.earned))+' / '+fmtNum(Math.round(x.tot))+' чел-ч</div>'; v.appendChild(row); });
-    var note=document.createElement("div"); note.style.cssText="color:var(--muted);font-size:12px;padding:10px 2px 0"; note.textContent="Готовность — по освоенным чел-ч (вес работы = её трудоёмкость). Прогнозный бюджет — из справочника. Приросты за период добавим снимками по датам.";
-    v.appendChild(note);
+    var v=document.getElementById("kpiView"); v.innerHTML="";
+    var d=readiness(), bd=budgetData();
+    if(d.objTot<=0 && bd.objBud<=0){ v.innerHTML='<div style="color:var(--muted);font-size:13px;padding:10px 2px">Нет данных. Загрузите справочник (чел-ч и цена у категорий) и введите факт по пакетам.</div>'; ovl6.classList.add("on"); kpiSheet.classList.add("on"); return; }
+    var pager=document.createElement("div"); pager.className="kpipager";
+    // --- страница 1: готовность ---
+    var p1=document.createElement("div"); p1.className="kpipage";
+    var h='<div class="kpibig"><div class="kpit">Строительная готовность объекта</div><div class="kpin">'+fmtPct(d.objPct)+' %</div>'+
+      '<div class="kpisub">освоено '+fmtNum(Math.round(d.objEarned))+' из '+fmtNum(Math.round(d.objTot))+' чел-ч</div>'+bar(d.objPct)+'</div>';
+    h+='<div class="svhead"><span>По дисциплинам</span></div>';
+    d.byDisc.forEach(function(x){ h+='<div class="kpirow"><div class="kpil"><span>'+escapeHtml(x.name)+'</span><b>'+fmtPct(x.pct)+' %</b></div>'+bar(x.pct)+'<div class="kpix">'+fmtNum(Math.round(x.earned))+' / '+fmtNum(Math.round(x.tot))+' чел-ч</div></div>'; });
+    h+='<div class="svhead" style="margin-top:10px"><span>По элементам</span></div>';
+    d.byEl.forEach(function(x){ h+='<div class="kpirow"><div class="kpil"><span>'+escapeHtml(x.name)+'</span><b>'+fmtPct(x.pct)+' %</b></div>'+bar(x.pct)+'<div class="kpix">факт '+fmtNum(x.fact)+' / '+fmtNum(x.proj)+' '+escapeHtml(x.unit||"")+'</div></div>'; });
+    p1.innerHTML=h;
+    // --- страница 2: бюджет ---
+    var p2=document.createElement("div"); p2.className="kpipage";
+    var g='<div class="kpibig" style="background:linear-gradient(135deg,#1e7a46,#27AE60)"><div class="kpit">Прогнозный бюджет объекта</div><div class="kpin" style="font-size:30px">'+fmtMoney(bd.objBud)+' ₽</div>'+
+      '<div class="kpisub">освоено '+fmtMoney(bd.objEarned)+' ₽ ('+fmtPct(bd.objBud>0?bd.objEarned/bd.objBud*100:0)+' %)</div>'+bar(bd.objBud>0?bd.objEarned/bd.objBud*100:0)+'</div>';
+    g+='<div class="svhead"><span>По дисциплинам</span></div>';
+    bd.byDisc.forEach(function(x){ g+='<div class="kpirow"><div class="kpil"><span>'+escapeHtml(x.name)+'</span><b>'+fmtMoney(x.bud)+' ₽</b></div>'+bar(x.pct)+'<div class="kpix">освоено '+fmtMoney(x.earned)+' ₽ · '+fmtPct(x.pct)+' %</div></div>'; });
+    g+='<div class="svhead" style="margin-top:10px"><span>По элементам</span></div>';
+    bd.byEl.forEach(function(x){ g+='<div class="kpirow"><div class="kpil"><span>'+escapeHtml(x.name)+'</span><b>'+fmtMoney(x.bud)+' ₽</b></div>'+bar(x.pct)+'<div class="kpix">освоено '+fmtMoney(x.earned)+' ₽ · '+fmtPct(x.pct)+' %</div></div>'; });
+    p2.innerHTML=g;
+    pager.appendChild(p1); pager.appendChild(p2); v.appendChild(pager);
+    var dots=document.createElement("div"); dots.className="kpidots";
+    dots.innerHTML='<span class="kd on">Готовность</span><span class="kd">Бюджет</span>'; v.appendChild(dots);
+    var kds=dots.querySelectorAll(".kd");
+    pager.addEventListener("scroll",function(){ var i=Math.round(pager.scrollLeft/pager.clientWidth); kds[0].classList.toggle("on",i===0); kds[1].classList.toggle("on",i===1); });
+    kds[0].addEventListener("click",function(){ pager.scrollTo({left:0,behavior:"smooth"}); });
+    kds[1].addEventListener("click",function(){ pager.scrollTo({left:pager.clientWidth,behavior:"smooth"}); });
     ovl6.classList.add("on"); kpiSheet.classList.add("on");
   }
   function closeKpi(){ ovl6.classList.remove("on"); kpiSheet.classList.remove("on"); }
@@ -978,6 +1063,43 @@
   var toastEl=document.getElementById("toast"), toastT=null;
   function toast(msg){ toastEl.textContent=msg; toastEl.classList.add("on"); if(toastT)clearTimeout(toastT); toastT=setTimeout(function(){ toastEl.classList.remove("on"); },2200); }
 
+  // ---- погода (Open-Meteo, пос. Тургояк) ----
+  function wxIcon(code){
+    if(code===0) return "☀";
+    if(code===1||code===2) return "⛅";
+    if(code===3) return "☁";
+    if(code===45||code===48) return "🌫";
+    if((code>=51&&code<=67)||(code>=80&&code<=82)) return "🌧";
+    if((code>=71&&code<=77)||code===85||code===86) return "❄";
+    if(code>=95) return "⛈";
+    return "☁";
+  }
+  function wxWord(code){
+    if(code===0) return "ясно";
+    if(code===1||code===2) return "перем. обл.";
+    if(code===3) return "облачно";
+    if(code===45||code===48) return "туман";
+    if((code>=51&&code<=67)||(code>=80&&code<=82)) return "дождь";
+    if((code>=71&&code<=77)||code===85||code===86) return "снег";
+    if(code>=95) return "гроза";
+    return "облачно";
+  }
+  function tsign(t){ t=Math.round(t); return (t>0?"+":"")+t+"°"; }
+  function loadWeather(){
+    var elw=document.getElementById("wx"); if(!elw) return;
+    var url="https://api.open-meteo.com/v1/forecast?latitude=55.147&longitude=60.138&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=2";
+    fetch(url).then(function(r){ return r.json(); }).then(function(d){
+      var cur=d.current||{}, day=d.daily||{};
+      var nowT=cur.temperature_2m, nowC=cur.weather_code;
+      var tmaxArr=day.temperature_2m_max||[], tminArr=day.temperature_2m_min||[], wcArr=day.weather_code||[];
+      var todS=(nowC!=null?wxIcon(nowC):"")+" <b>"+(nowT!=null?tsign(nowT):"—")+"</b>";
+      var tomS="";
+      if(tmaxArr.length>1){ tomS=" · зав "+wxIcon(wcArr[1])+" <b>"+tsign(tmaxArr[1])+"</b>"; }
+      elw.innerHTML="сег "+todS+tomS;
+      elw.title="пос. Тургояк · сегодня "+(nowC!=null?wxWord(nowC):"")+(wcArr.length>1?(", завтра "+wxWord(wcArr[1])):"");
+    }).catch(function(){ elw.textContent="погода недоступна"; });
+  }
+
   // ---- init ----
   statusEl=document.getElementById("status");
   try{ var zsaved=parseInt(lsGet("gantt_zoom")); if(!isNaN(zsaved)&&zsaved>=0&&zsaved<ZOOMS.length){ zi=zsaved; DAYW=ZOOMS[zi]; WEEKW=DAYW*7; } }catch(e){}
@@ -989,6 +1111,7 @@
     setTimeout(function(){ toast("Загрузи справочник (меню «⋯»), затем на полосе выбери элемент и объём."); },400);
   });
   window.addEventListener("resize",render);
+  loadWeather();
 })();
 </script>
 <script>
