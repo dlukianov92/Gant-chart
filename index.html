@@ -72,7 +72,7 @@
     padding:0 15px;color:#fff;font-size:11.5px;font-weight:600;line-height:1;
     box-shadow:inset 0 0 0 1px rgba(255,255,255,.18), 0 1px 2px rgba(20,30,50,.18);
     touch-action:none;cursor:grab;user-select:none;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-  .bar .lbl{overflow:hidden;text-overflow:ellipsis}
+  .bar .lbl{overflow:hidden;text-overflow:ellipsis;position:relative;z-index:1}
   .bar .grip{position:absolute;top:0;bottom:0;width:16px;display:flex;align-items:center;justify-content:center;opacity:.4}
   .bar .grip::after{content:"";width:2px;height:12px;border-radius:2px;background:currentColor;
     box-shadow:3px 0 0 currentColor,-3px 0 0 currentColor}
@@ -128,6 +128,17 @@
   .svrow .t{flex:1}.svrow .q{color:var(--muted);white-space:nowrap}
   .svhead{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:10px 0 2px;display:flex;align-items:center;gap:6px}
   .svhead .warn{color:#c0392b}
+  .matrow .mn{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+  .matrow .rcost{font-size:11px;color:var(--muted);font-weight:600}
+  .matrow .ovmark{font-size:10px;color:#c0392b;font-weight:700;margin-left:4px}
+  .rtag{flex:0 0 auto;width:18px;height:18px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff}
+  .rt-m{background:#4472C4}.rt-r{background:#16A085}.rt-t{background:#7F8C8D}
+  .pkgvol{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;flex-wrap:wrap}
+  .pkgvol .field{flex:1;min-width:120px;margin:0}
+  .pvinfo{flex-basis:100%;font-size:11px;color:var(--muted);font-weight:600;margin-top:2px}
+  .sumtot{display:flex;justify-content:space-between;gap:12px;background:#fbfcfd;border-radius:10px;padding:10px 12px;font-size:14px;margin-bottom:6px}
+  #tDisc{background:#fff}
+  .bar .prog{position:absolute;left:0;top:0;bottom:0;background:rgba(255,255,255,.32);border-right:2px solid rgba(255,255,255,.75);pointer-events:none;border-radius:7px 0 0 7px}
   .fields{display:flex;flex-direction:column;gap:9px;margin-bottom:14px}
   .field label{display:block;font-size:11px;color:var(--muted);font-weight:650;margin:0 0 4px 2px}
   .field input{width:100%;border:1.5px solid var(--grid-strong);border-radius:10px;padding:11px 12px;
@@ -162,9 +173,9 @@
 </div>
 
 <div class="menu" id="menu">
-  <button data-act="types">Виды работ</button>
-  <button data-act="spec">Спецификация материалов</button>
-  <button data-act="summary">Сводка материалов</button>
+  <button data-act="types">Элементы</button>
+  <button data-act="spec">Справочник (импорт)</button>
+  <button data-act="summary">Сводка: категории и готовность</button>
   <div class="sep"></div>
   <button data-act="export">Экспорт в файл</button>
   <button data-act="import">Импорт из файла</button>
@@ -177,14 +188,22 @@
 <div class="ovl" id="ovl"></div>
 <div class="sheet" id="sheet">
   <div class="grab"></div>
-  <h2>Вид работ</h2>
+  <h2>Элемент</h2>
   <div class="types" id="types"></div>
+  <div class="pkgvol" id="pkgVolRow">
+    <div class="field"><label>Объём пакета (<span id="pvUnit">ед.</span>)</label><input id="fPkgVol" inputmode="decimal" placeholder="напр. 90"></div>
+    <div class="field"><label>% от элемента</label><input id="fPkgPct" inputmode="decimal" placeholder="%"></div>
+    <div class="pvinfo" id="pvInfo"></div>
+  </div>
+  <div class="pkgvol">
+    <div class="field"><label>Факт выполнено (<span id="fvUnit">ед.</span>)</label><input id="fFact" inputmode="decimal" placeholder="напр. 45"></div>
+    <div class="field"><label>Готовность</label><input id="fDone" readonly placeholder="%"></div>
+  </div>
   <div class="fields">
     <div class="field"><label>Пояснение</label><input id="fNote" placeholder="Что делаем"></div>
-    <div class="field"><label>Объём</label><input id="fVol" placeholder="напр. 90 м³"></div>
     <div class="field"><label>Подрядчик</label><input id="fContr" placeholder="Бригада / подрядчик"></div>
   </div>
-  <button class="btn" id="matBtn" style="width:100%;margin-bottom:12px">Материалы (0)</button>
+  <button class="btn" id="matBtn" style="width:100%;margin-bottom:12px">Категории ресурса (0)</button>
   <div class="reorder">
     <span class="rlbl">Порядок в группе</span>
     <button class="btn small" id="upBtn">↑ Выше</button>
@@ -199,11 +218,16 @@
 <div class="ovl" id="ovl2"></div>
 <div class="sheet" id="typeSheet">
   <div class="grab"></div>
-  <h2>Новый вид работ</h2>
-  <div class="field"><input id="tName" placeholder="Название вида (напр. Штукатурка)"></div>
+  <h2>Новый элемент</h2>
+  <div class="field"><input id="tName" placeholder="Имя (напр. Кладка стен 5 этажа)"></div>
+  <div class="manual" style="margin-bottom:10px">
+    <input id="tUnit" class="short" placeholder="Ед. (м³)">
+    <input id="tVol" class="short" inputmode="decimal" placeholder="Объём">
+    <select id="tDisc" style="flex:1;border:1.5px solid var(--grid-strong);border-radius:10px;padding:10px;font-size:14px"></select>
+  </div>
   <div class="swatches" id="swatches"></div>
-  <button class="btn primary" id="addTypeBtn" style="width:100%">Добавить вид</button>
-  <h2 style="margin-top:16px">Свои виды</h2>
+  <button class="btn primary" id="addTypeBtn" style="width:100%">Добавить элемент</button>
+  <h2 style="margin-top:16px">Свои элементы</h2>
   <div class="typelist" id="typeList"></div>
   <button class="btn" id="typeCloseBtn" style="width:100%;margin-top:10px">Закрыть</button>
 </div>
@@ -211,25 +235,25 @@
 <div class="ovl" id="ovl3"></div>
 <div class="sheet" id="matSheet">
   <div class="grab"></div>
-  <h2 id="matTitle">Материалы</h2>
+  <h2 id="matTitle">Ресурсы пакета</h2>
+  <div class="pvinfo" id="matTotals" style="margin:-4px 0 10px"></div>
   <div class="matlist" id="matList"></div>
-  <h2 style="margin-top:14px">Из спецификации</h2>
-  <div class="specadd" id="specAdd"></div>
-  <h2 style="margin-top:14px">Вручную</h2>
+  <h2 style="margin-top:14px">Добавить вручную</h2>
   <div class="manual">
-    <input id="mName" placeholder="Материал">
+    <input id="mName" placeholder="Ресурс">
     <input id="mUnit" class="short" placeholder="Ед.">
     <input id="mQty" class="short" inputmode="decimal" placeholder="Кол-во">
     <button class="btn primary" id="mAddBtn">＋</button>
   </div>
+  <p class="hint" style="margin:8px 0 0">Кол-во ресурсов из справочника проставлено пропорционально объёму пакета — можно править вручную (правка выделяется).</p>
   <button class="btn" id="matCloseBtn" style="width:100%;margin-top:12px">Готово</button>
 </div>
 
 <div class="ovl" id="ovl4"></div>
 <div class="sheet" id="specSheet">
   <div class="grab"></div>
-  <h2>Спецификация материалов</h2>
-  <p class="hint">Формат CSV: <b>Вид работ; Материал; Ед. изм.; Норма</b> (последний столбец необязателен). Первая строка-заголовок распознаётся сама. Сохраняйте из Excel как «CSV UTF-8».</p>
+  <h2>Справочник проекта</h2>
+  <p class="hint">CSV из «spravochnik-import.csv»: <b>Дисциплина; Элемент; Ед. элемента; Проектный объём; Тип; Категория ресурса; Ед. категории; Объём категории на элемент.</b> Создаёт элементы и их категории ресурса. Сохраняйте из Excel как «CSV UTF-8».</p>
   <div class="row">
     <button class="btn primary" id="specImportBtn" style="flex:1">Загрузить CSV</button>
     <button class="btn danger" id="specClearBtn">Очистить</button>
@@ -242,7 +266,7 @@
 <div class="ovl" id="ovl5"></div>
 <div class="sheet" id="sumSheet">
   <div class="grab"></div>
-  <h2>Сводка материалов — для заказа</h2>
+  <h2>Сводка — категории и готовность</h2>
   <div class="sumview" id="sumView"></div>
   <div class="row">
     <button class="btn primary" id="sumExportBtn" style="flex:1">Экспорт CSV</button>
@@ -259,13 +283,15 @@
   var DAYW=12, WEEKW=DAYW*7, ROWH=36, BARH=28, GHEAD=24, HEADERH=46;
   var STORE_KEY="gantt_board_v1";
 
+  var DISCIPLINES=["Общестроительные работы","Архитектура","Трубопроводы","Электрика","Механика"];
+  // Элемент: {id, short(имя), color, ink, disc(дисциплина), unit(ед.изм.), projVol(проектный объём)}
   var BUILTIN=[
-    {id:"klad",  short:"Кладка",            color:"#4472C4", ink:"#fff"},
-    {id:"armo",  short:"Армопояс",          color:"#70AD47", ink:"#fff"},
-    {id:"plity", short:"Плиты + анкеровка", color:"#ED7D31", ink:"#fff"},
-    {id:"omono", short:"Омоноличивание",    color:"#FFC000", ink:"#3a2f00"}
+    {id:"klad",  short:"Кладка",            color:"#4472C4", ink:"#fff", disc:"Общестроительные работы", unit:"м³", projVol:0},
+    {id:"armo",  short:"Армопояс",          color:"#70AD47", ink:"#fff", disc:"Общестроительные работы", unit:"м³", projVol:0},
+    {id:"plity", short:"Плиты + анкеровка", color:"#ED7D31", ink:"#fff", disc:"Общестроительные работы", unit:"шт", projVol:0},
+    {id:"omono", short:"Омоноличивание",    color:"#FFC000", ink:"#3a2f00",disc:"Общестроительные работы", unit:"м³", projVol:0}
   ];
-  var NONE={id:null, short:"Без вида", color:"#9aa0a6", ink:"#fff"};
+  var NONE={id:null, short:"Без вида", color:"#9aa0a6", ink:"#fff", disc:"", unit:"", projVol:0};
   var PALETTE=["#8E44AD","#2980B9","#16A085","#27AE60","#F39C12","#E74C3C","#D81B60","#00838F","#5D4037","#546E7A"];
   function inkFor(hex){ var c=(hex||"#888").replace("#",""); if(c.length===3)c=c.split("").map(function(x){return x+x;}).join("");
     var r=parseInt(c.substr(0,2),16),g=parseInt(c.substr(2,2),16),b=parseInt(c.substr(4,2),16);
@@ -276,7 +302,23 @@
   function effTypeId(b, known){ return (b.typeId!==null && known[b.typeId]) ? b.typeId : null; }
   function typeById(id){ var a=allTypes(); for(var i=0;i<a.length;i++) if(a[i].id===id) return a[i]; return NONE; }
   function norm(s){ return (s||"").toString().toLowerCase().replace(/\s+/g," ").trim(); }
-  function specForType(typeShort){ var n=norm(typeShort); return state.spec.filter(function(m){ return norm(m.typeName)===n; }); }
+  function elemByName(name){ var n=norm(name); var a=allTypes(); for(var i=0;i<a.length;i++) if(norm(a[i].short)===n) return a[i]; return null; }
+  function num(x){ if(x===""||x==null) return null; var v=parseFloat((""+x).replace(",",".")); return isNaN(v)?null:v; }
+  // ресурсы элемента (уровень планирования): state.elemRes[elemId] = [{rtype, name(категория), unit, total(объём категории на элемент)}]
+  function elemRes(id){ return (state.elemRes && state.elemRes[id]) ? state.elemRes[id] : []; }
+  function pkgShare(b){ var el=typeById(b.typeId); var pv=num(el.projVol)||0; var v=num(b.pkgVol)||0; return pv>0? v/pv : 0; }
+  // категории пакета: объём категории × доля пакета, с ручной правкой b.resOv[i] + ручные b.mats
+  function pkgResources(b){
+    var share=pkgShare(b);
+    var list=elemRes(b.typeId).map(function(r,i){
+      var ov=(b.resOv && b.resOv[i]!=null)?num(b.resOv[i]):null;
+      var qty=(ov!=null?ov:(num(r.total)||0)*share);
+      return {rtype:r.rtype, name:r.name, unit:r.unit, qty:qty, idx:i, over:(ov!=null)};
+    });
+    (b.mats||[]).forEach(function(m,j){ list.push({rtype:m.rtype||"Материал", name:m.name, unit:m.unit, qty:(num(m.qty)||0), manual:j, over:false}); });
+    return list;
+  }
+  function pkgDonePct(b){ var pv=num(b.pkgVol)||0, f=num(b.fact)||0; return pv>0?Math.max(0,Math.min(100,f/pv*100)):0; }
   var typeSeq=1;
 
   var MONTHS=["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
@@ -293,30 +335,32 @@
   function ddmm(d){ return pad(d.getDate())+"."+pad(d.getMonth()+1); }
   var todayDay=dateToDay(today);
 
-  var state={bars:[], types:[], spec:[]}; var seq=1;
+  var state={bars:[], types:[], elemRes:{}}; var seq=1;
   function clampDay(x){ return Math.max(0,Math.min(DAYS,x)); }
   function defaultBars(){
-    var arr=[]; for(var i=0;i<20;i++){ arr.push({id:"b"+(seq++),order:i,typeId:null,start:i,end:i+5,note:"",vol:"",contr:"",mats:[]}); } return arr;
+    var arr=[]; for(var i=0;i<20;i++){ arr.push({id:"b"+(seq++),order:i,typeId:null,start:i,end:i+5,note:"",contr:"",pkgVol:"",fact:"",resOv:{},mats:[]}); } return arr;
   }
   function serialize(){
-    return JSON.stringify({v:3, savedAt:new Date().toISOString(),
-      types:state.types.map(function(t){ return {id:t.id, short:t.short, color:t.color}; }),
-      spec:state.spec.map(function(m){ return {t:m.typeName, n:m.name, u:m.unit, r:m.rate}; }),
+    return JSON.stringify({v:5, savedAt:new Date().toISOString(),
+      types:state.types.map(function(t){ return {id:t.id, short:t.short, color:t.color, disc:t.disc||"", unit:t.unit||"", projVol:t.projVol||0}; }),
+      elemRes:state.elemRes,
       bars:state.bars.map(function(b){
-      return {id:b.id,order:b.order,typeId:b.typeId,s:iso(dayToDate(b.start)),e:iso(dayToDate(b.end)),note:b.note,vol:b.vol,contr:b.contr,
-        mats:(b.mats||[]).map(function(m){ return {n:m.name,u:m.unit,q:m.qty}; })};
+      return {id:b.id,order:b.order,typeId:b.typeId,s:iso(dayToDate(b.start)),e:iso(dayToDate(b.end)),note:b.note,contr:b.contr,
+        pkgVol:(b.pkgVol!=null?b.pkgVol:""), fact:(b.fact!=null?b.fact:""), resOv:(b.resOv||{}),
+        mats:(b.mats||[]).map(function(m){ return {n:m.name,u:m.unit,q:m.qty,rt:m.rtype}; })};
     })});
   }
   function hydrate(raw){
     try{ var o=JSON.parse(raw); if(!o||!o.bars||!o.bars.length) return false;
-      state.types=(o.types||[]).map(function(t){ return {id:t.id, short:t.short||t.name||"Вид", color:t.color||"#888", ink:inkFor(t.color||"#888")}; });
+      state.types=(o.types||[]).map(function(t){ return {id:t.id, short:t.short||t.name||"Элемент", color:t.color||"#888", ink:inkFor(t.color||"#888"), disc:t.disc||"", unit:t.unit||"", projVol:(t.projVol!=null?t.projVol:0)}; });
       var tmx=0; state.types.forEach(function(t){ var n=parseInt((t.id||"u0").replace(/\D/g,""))||0; if(n>tmx)tmx=n; }); typeSeq=tmx+1;
-      state.spec=(o.spec||[]).map(function(m){ return {typeName:m.t||m.typeName||"", name:m.n||m.name||"", unit:m.u||m.unit||"", rate:(m.r!=null?m.r:(m.rate!=null?m.rate:null))}; });
+      state.elemRes=o.elemRes||{};
       state.bars=o.bars.map(function(b,idx){
         return {id:b.id||("b"+(seq++)),order:(b.order==null?idx:b.order),typeId:(b.typeId||null),
           start:clampDay(dateToDay(parseIso(b.s))),end:clampDay(dateToDay(parseIso(b.e))),
-          note:b.note||"",vol:b.vol||"",contr:b.contr||"",
-          mats:(b.mats||[]).map(function(m){ return {name:m.n||m.name||"", unit:m.u||m.unit||"", qty:(m.q!=null?m.q:(m.qty!=null?m.qty:1))}; })};
+          note:b.note||"",contr:b.contr||"",
+          pkgVol:(b.pkgVol!=null?b.pkgVol:""), fact:(b.fact!=null?b.fact:""), resOv:(b.resOv||{}),
+          mats:(b.mats||[]).map(function(m){ return {name:m.n||m.name||"", unit:m.u||m.unit||"", qty:(m.q!=null?m.q:(m.qty!=null?m.qty:1)), rtype:(m.rt||m.rtype||"Материал")}; })};
       });
       state.bars.forEach(function(b){ if(b.end<=b.start) b.end=b.start+1; });
       var mx=0; state.bars.forEach(function(b){ var n=parseInt((b.id||"b0").replace(/\D/g,""))||0; if(n>mx)mx=n; }); seq=mx+1;
@@ -375,7 +419,13 @@
 
   // ---- render ----
   var groupsEl=document.getElementById("groups");
-  function barText(b){ var p=[]; if(b.note)p.push(b.note); if(b.vol)p.push(b.vol); if(b.contr)p.push(b.contr); return p.join(" · "); }
+  function barText(b){ var p=[]; if(b.note)p.push(b.note);
+    var v=(b.pkgVol!=null&&b.pkgVol!=="")?((""+b.pkgVol+" "+(typeById(b.typeId).unit||"")).trim()):""; if(v)p.push(v);
+    var d=pkgDonePct(b); if(d>0)p.push(Math.round(d)+"%");
+    if(b.contr)p.push(b.contr); return p.join(" · "); }
+  function updateBarLabel(b){ var el=groupsEl.querySelector('.bar[data-id="'+b.id+'"]'); if(!el)return;
+    var l=el.querySelector('.lbl'); if(l) l.textContent=barText(b);
+    var f=el.querySelector('.prog'); if(f) f.style.width=pkgDonePct(b)+"%"; }
   function escapeHtml(s){ return (s||"").replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];}); }
   function render(){
     groupsEl.style.width=(DAYS*DAYW)+"px"; groupsEl.innerHTML="";
@@ -400,7 +450,7 @@
     el.style.top=(ri*ROWH+(ROWH-BARH)/2)+"px"; el.style.left=(b.start*DAYW)+"px";
     el.style.width=Math.max(DAYW,(b.end-b.start)*DAYW)+"px";
     el.style.background=t.color; el.style.color=t.ink;
-    el.innerHTML='<span class="grip gl"></span><span class="lbl">'+escapeHtml(barText(b))+'</span><span class="grip gr"></span>';
+    el.innerHTML='<span class="prog" style="width:'+pkgDonePct(b)+'%"></span><span class="grip gl"></span><span class="lbl">'+escapeHtml(barText(b))+'</span><span class="grip gr"></span>';
     attachDrag(el,b); return el;
   }
 
@@ -433,23 +483,35 @@
 
   // ---- editor ----
   var ovl=document.getElementById("ovl"), sheet=document.getElementById("sheet"), typesEl=document.getElementById("types");
-  var fNote=document.getElementById("fNote"), fVol=document.getElementById("fVol"), fContr=document.getElementById("fContr");
+  var fNote=document.getElementById("fNote"), fContr=document.getElementById("fContr");
+  var fPkgVol=document.getElementById("fPkgVol"), fPkgPct=document.getElementById("fPkgPct");
+  var fFact=document.getElementById("fFact"), fDone=document.getElementById("fDone"), fvUnit=document.getElementById("fvUnit");
+  var pvUnit=document.getElementById("pvUnit"), pvInfo=document.getElementById("pvInfo");
   var editing=null;
   function buildTypeChips(){
     typesEl.innerHTML="";
     groupOrder().forEach(function(t){
       var c=document.createElement("div"); c.className="type"; c.dataset.id=(t.id===null?"__none":t.id);
       c.innerHTML='<span class="chip" style="background:'+t.color+'"></span>'+t.short;
-      c.addEventListener("click",function(){ if(!editing)return; editing.typeId=(t.id===null?null:t.id); markSelected(); save(); render(); });
+      c.addEventListener("click",function(){ if(!editing)return; editing.typeId=(t.id===null?null:t.id); editing.resOv={}; markSelected(); refreshPkg(); updateBarLabel(editing); updateMatBtn(); save(); render(); });
       typesEl.appendChild(c);
     });
-    var add=document.createElement("div"); add.className="type add"; add.innerHTML='＋ Новый вид';
+    var add=document.createElement("div"); add.className="type add"; add.innerHTML='＋ Новый элемент';
     add.addEventListener("click",function(){ openTypeSheet(); });
     typesEl.appendChild(add);
   }
   function markSelected(){ var cur=editing?(editing.typeId===null?"__none":editing.typeId):null;
     Array.prototype.forEach.call(typesEl.children,function(c){ c.classList.toggle("sel",c.dataset.id===cur); }); }
-  function openEditor(b){ editing=b; buildTypeChips(); fNote.value=b.note||""; fVol.value=b.vol||""; fContr.value=b.contr||""; markSelected(); updateMatBtn(); ovl.classList.add("on"); sheet.classList.add("on"); }
+  function refreshPkg(){
+    if(!editing) return; var el=typeById(editing.typeId);
+    pvUnit.textContent=el.unit||"ед."; fvUnit.textContent=el.unit||"ед.";
+    fPkgVol.value=(editing.pkgVol!=null?editing.pkgVol:""); fFact.value=(editing.fact!=null?editing.fact:"");
+    var pv=num(el.projVol)||0, v=num(editing.pkgVol);
+    fPkgPct.value=(pv>0&&v!=null)?(Math.round(v/pv*1000)/10):"";
+    fDone.value=(num(editing.pkgVol)&&num(editing.fact)!=null)?(Math.round(pkgDonePct(editing))+" %"):"";
+    pvInfo.textContent = (el.id!==null)?("Проект: "+(pv||0)+" "+(el.unit||"")+(v!=null&&pv>0?("  ·  доля "+(Math.round(v/pv*1000)/10)+"%"):"")):"Выберите элемент";
+  }
+  function openEditor(b){ editing=b; buildTypeChips(); fNote.value=b.note||""; fContr.value=b.contr||""; markSelected(); refreshPkg(); updateMatBtn(); ovl.classList.add("on"); sheet.classList.add("on"); }
   function moveBar(dir){
     if(!editing) return; var known=knownIdSet();
     var grp=state.bars.filter(function(b){ return effTypeId(b,known)===effTypeId(editing,known); }).sort(function(a,b){return a.order-b.order;});
@@ -457,11 +519,18 @@
     if(j<0||j>=grp.length){ toast(dir<0?"Уже вверху":"Уже внизу"); return; }
     var o=editing.order; editing.order=grp[j].order; grp[j].order=o; save(); render();
   }
-  function closeEditor(){ if(editing){ editing.note=fNote.value.trim(); editing.vol=fVol.value.trim(); editing.contr=fContr.value.trim(); }
+  function closeEditor(){ if(editing){ editing.note=fNote.value.trim(); editing.contr=fContr.value.trim(); }
     ovl.classList.remove("on"); sheet.classList.remove("on"); editing=null; save(); render(); }
-  [fNote,fVol,fContr].forEach(function(inp){ inp.addEventListener("input",function(){ if(!editing)return;
-    editing.note=fNote.value; editing.vol=fVol.value; editing.contr=fContr.value;
-    var el=groupsEl.querySelector('.bar[data-id="'+editing.id+'"] .lbl'); if(el) el.textContent=barText({note:fNote.value,vol:fVol.value,contr:fContr.value}); }); });
+  fNote.addEventListener("input",function(){ if(!editing)return; editing.note=fNote.value; updateBarLabel(editing); });
+  fContr.addEventListener("input",function(){ if(!editing)return; editing.contr=fContr.value; updateBarLabel(editing); });
+  fPkgVol.addEventListener("input",function(){ if(!editing)return; editing.pkgVol=fPkgVol.value; editing.resOv={};
+    var el=typeById(editing.typeId); var pv=num(el.projVol)||0, v=num(fPkgVol.value);
+    fPkgPct.value=(pv>0&&v!=null)?(Math.round(v/pv*1000)/10):""; refreshPkg(); updateBarLabel(editing); updateMatBtn(); save(); });
+  fPkgPct.addEventListener("input",function(){ if(!editing)return; var el=typeById(editing.typeId); var pv=num(el.projVol)||0, p=num(fPkgPct.value);
+    if(pv>0&&p!=null){ var v=Math.round(pv*p/100*1000)/1000; editing.pkgVol=v; fPkgVol.value=v; editing.resOv={}; }
+    refreshPkg(); updateBarLabel(editing); updateMatBtn(); save(); });
+  fFact.addEventListener("input",function(){ if(!editing)return; editing.fact=fFact.value;
+    fDone.value=(num(editing.pkgVol)&&num(editing.fact)!=null)?(Math.round(pkgDonePct(editing))+" %"):""; updateBarLabel(editing); save(); });
   document.getElementById("doneBtn").addEventListener("click",closeEditor);
   ovl.addEventListener("click",closeEditor);
   document.getElementById("delBtn").addEventListener("click",function(){ if(!editing)return;
@@ -471,38 +540,41 @@
 
   // ---- виды работ (свои) ----
   var ovl2=document.getElementById("ovl2"), typeSheet=document.getElementById("typeSheet");
-  var tName=document.getElementById("tName"), swatchesEl=document.getElementById("swatches"), typeListEl=document.getElementById("typeList");
+  var tName=document.getElementById("tName"), tUnit=document.getElementById("tUnit"), tVol=document.getElementById("tVol"), tDisc=document.getElementById("tDisc");
+  var swatchesEl=document.getElementById("swatches"), typeListEl=document.getElementById("typeList");
   var selColor=PALETTE[0];
   function renderSwatches(){ swatchesEl.innerHTML=""; PALETTE.forEach(function(c){
     var s=document.createElement("button"); s.className="sw"+(c===selColor?" sel":""); s.style.background=c; s.dataset.c=c; swatchesEl.appendChild(s); }); }
   swatchesEl.addEventListener("click",function(e){ var c=e.target&&e.target.dataset?e.target.dataset.c:null; if(!c)return; selColor=c; renderSwatches(); });
   function renderTypeList(){ typeListEl.innerHTML="";
-    if(!state.types.length){ typeListEl.innerHTML='<div class="muted">Пока нет своих видов</div>'; return; }
+    if(!state.types.length){ typeListEl.innerHTML='<div class="muted">Пока нет своих элементов</div>'; return; }
     state.types.forEach(function(t){ var row=document.createElement("div"); row.className="trow";
-      row.innerHTML='<span class="chip" style="background:'+t.color+'"></span><span class="tname">'+escapeHtml(t.short)+'</span><button class="tdel" data-id="'+t.id+'">✕</button>';
+      var info=(t.projVol?(""+t.projVol+" "+(t.unit||"")):(t.unit||""));
+      row.innerHTML='<span class="chip" style="background:'+t.color+'"></span><span class="tname">'+escapeHtml(t.short)+(info?(' <span style="color:var(--muted);font-weight:500">· '+escapeHtml(info)+'</span>'):'')+'</span><button class="tdel" data-id="'+t.id+'">✕</button>';
       typeListEl.appendChild(row); }); }
   typeListEl.addEventListener("click",function(e){ var id=(e.target&&e.target.classList&&e.target.classList.contains("tdel"))?e.target.dataset.id:null; if(!id)return;
-    if(!confirm("Удалить этот вид? Полоски этого вида станут «Без вида».")) return;
-    state.types=state.types.filter(function(t){return t.id!==id;});
+    if(!confirm("Удалить элемент? Полоски станут «Без вида», ресурсы элемента удалятся.")) return;
+    state.types=state.types.filter(function(t){return t.id!==id;}); if(state.elemRes) delete state.elemRes[id];
     state.bars.forEach(function(b){ if(b.typeId===id) b.typeId=null; });
-    save(); render(); renderTypeList(); if(sheet.classList.contains("on")){ buildTypeChips(); markSelected(); } toast("Вид удалён"); });
-  function openTypeSheet(){ selColor=PALETTE[0]; tName.value=""; renderSwatches(); renderTypeList(); ovl2.classList.add("on"); typeSheet.classList.add("on"); }
+    save(); render(); renderTypeList(); if(sheet.classList.contains("on")){ buildTypeChips(); markSelected(); } toast("Элемент удалён"); });
+  function fillDisc(){ tDisc.innerHTML=""; DISCIPLINES.forEach(function(d){ var o=document.createElement("option"); o.value=d; o.textContent=d; tDisc.appendChild(o); }); }
+  function openTypeSheet(){ selColor=PALETTE[0]; tName.value=""; tUnit.value=""; tVol.value=""; fillDisc(); renderSwatches(); renderTypeList(); ovl2.classList.add("on"); typeSheet.classList.add("on"); }
   function closeTypeSheet(){ ovl2.classList.remove("on"); typeSheet.classList.remove("on"); }
   ovl2.addEventListener("click",closeTypeSheet);
   document.getElementById("typeCloseBtn").addEventListener("click",closeTypeSheet);
   document.getElementById("addTypeBtn").addEventListener("click",function(){
-    var name=tName.value.trim(); if(!name){ toast("Введите название"); return; }
-    var t={id:"u"+(typeSeq++), short:name, color:selColor, ink:inkFor(selColor)};
-    state.types.push(t); save(); tName.value=""; renderTypeList();
-    if(editing && sheet.classList.contains("on")){ editing.typeId=t.id; render(); buildTypeChips(); markSelected(); closeTypeSheet(); }
+    var name=tName.value.trim(); if(!name){ toast("Введите имя элемента"); return; }
+    var t={id:"u"+(typeSeq++), short:name, color:selColor, ink:inkFor(selColor), disc:(tDisc.value||DISCIPLINES[0]), unit:(tUnit.value.trim()||"ед."), projVol:(num(tVol.value)||0)};
+    state.types.push(t); save(); tName.value=""; tUnit.value=""; tVol.value=""; renderTypeList();
+    if(editing && sheet.classList.contains("on")){ editing.typeId=t.id; editing.resOv={}; render(); buildTypeChips(); markSelected(); refreshPkg(); closeTypeSheet(); }
     else { render(); }
-    toast("Вид добавлен: "+name);
+    toast("Элемент добавлен: "+name);
   });
 
   // ---- add ----
   document.getElementById("addBtn").addEventListener("click",function(){
     var mx=state.bars.reduce(function(m,b){return Math.max(m,b.order);},-1);
-    var nb={id:"b"+(seq++),order:mx+1,typeId:null,start:clampDay(todayDay),end:clampDay(todayDay+5),note:"",vol:"",contr:"",mats:[]};
+    var nb={id:"b"+(seq++),order:mx+1,typeId:null,start:clampDay(todayDay),end:clampDay(todayDay+5),note:"",contr:"",pkgVol:"",fact:"",resOv:{},mats:[]};
     state.bars.push(nb); save(); render(); openEditor(nb);
   });
 
@@ -530,37 +602,41 @@
     r.onerror=function(){ toast("Ошибка чтения файла"); importFile.value=""; }; r.readAsText(f);
   });
 
-  // ---- материалы / спецификация / сводка ----
+  // ---- ресурсы пакета / справочник / сводка ----
   var ovl3=document.getElementById("ovl3"), matSheet=document.getElementById("matSheet"), matBar=null;
   var ovl4=document.getElementById("ovl4"), specSheet=document.getElementById("specSheet");
   var ovl5=document.getElementById("ovl5"), sumSheet=document.getElementById("sumSheet");
-  function matCount(b){ return (b&&b.mats)?b.mats.length:0; }
-  function updateMatBtn(){ var btn=document.getElementById("matBtn"); if(btn&&editing) btn.textContent="Материалы ("+matCount(editing)+")"; }
+  function fmtNum(n){ return (Math.round(n*1000)/1000).toString().replace(".",","); }
+  function updateMatBtn(){ var btn=document.getElementById("matBtn"); if(btn&&editing) btn.textContent="Категории ресурса ("+pkgResources(editing).length+")"; }
+  function matTotalsText(b){ var t=typeById(b.typeId); var d=pkgDonePct(b);
+    return "Объём пакета: "+(b.pkgVol||0)+" "+(t.unit||"")+(num(b.pkgVol)?("   ·   доля "+fmtNum(pkgShare(b)*100)+"%"):"")+(d>0?("   ·   готово "+Math.round(d)+"%"):""); }
 
-  function openMaterials(b){ matBar=b; if(!b.mats)b.mats=[]; renderMatSheet(); ovl3.classList.add("on"); matSheet.classList.add("on"); }
+  function openMaterials(b){ matBar=b; if(!b.mats)b.mats=[]; if(!b.resOv)b.resOv={}; renderMatSheet(); ovl3.classList.add("on"); matSheet.classList.add("on"); }
   function closeMaterials(){ ovl3.classList.remove("on"); matSheet.classList.remove("on"); matBar=null; updateMatBtn(); render(); }
   function renderMatSheet(){
     var b=matBar; if(!b) return; var t=typeById(b.typeId);
-    document.getElementById("matTitle").textContent="Материалы — "+t.short;
+    document.getElementById("matTitle").textContent="Категории — "+t.short;
+    document.getElementById("matTotals").textContent=matTotalsText(b);
     var list=document.getElementById("matList"); list.innerHTML="";
-    if(!b.mats.length){ list.innerHTML='<div class="empty">Пока не добавлено</div>'; }
-    b.mats.forEach(function(m,idx){
+    var res=pkgResources(b);
+    if(!res.length){ list.innerHTML='<div class="empty">Нет категорий. Выберите элемент из справочника или добавьте вручную.</div>'; }
+    res.forEach(function(r){
       var row=document.createElement("div"); row.className="matrow";
-      row.innerHTML='<span class="mn">'+escapeHtml(m.name)+'</span><input class="q" inputmode="decimal"><span class="mu">'+escapeHtml(m.unit||"")+'</span><button class="mdel">✕</button>';
-      var q=row.querySelector(".q"); q.value=(m.qty!=null?m.qty:"");
-      q.addEventListener("input",function(){ m.qty=parseFloat((""+q.value).replace(",","."))||0; save(); });
-      row.querySelector(".mdel").addEventListener("click",function(){ b.mats.splice(idx,1); save(); renderMatSheet(); });
+      var cls=(r.rtype==="Работа")?"r":((r.rtype==="Техника")?"t":"m");
+      var tag=(cls==="r")?"Р":((cls==="t")?"Т":"М");
+      row.innerHTML='<span class="rtag rt-'+cls+'">'+tag+'</span>'+
+        '<span class="mn">'+escapeHtml(r.name)+(r.over?' <span class="ovmark">ручн.</span>':'')+'</span>'+
+        '<input class="q" inputmode="decimal"><span class="mu">'+escapeHtml(r.unit||"")+'</span>'+
+        '<button class="mdel">'+(r.manual!=null?"✕":"↺")+'</button>';
+      var q=row.querySelector(".q"); q.value=(r.qty!=null?Math.round(r.qty*1000)/1000:"");
+      q.addEventListener("input",function(){ var val=num(q.value);
+        if(r.manual!=null){ b.mats[r.manual].qty=(val!=null?val:0); }
+        else { if(!b.resOv)b.resOv={}; b.resOv[r.idx]=(val!=null?val:0); }
+        row.querySelector(".mn").innerHTML=escapeHtml(r.name)+' <span class="ovmark">ручн.</span>'; save(); });
+      row.querySelector(".mdel").addEventListener("click",function(){
+        if(r.manual!=null){ b.mats.splice(r.manual,1); } else { if(b.resOv) delete b.resOv[r.idx]; }
+        save(); renderMatSheet(); });
       list.appendChild(row);
-    });
-    var sa=document.getElementById("specAdd"); sa.innerHTML="";
-    var opts=specForType(t.short);
-    if(!opts.length){ sa.innerHTML='<span class="empty">Для «'+escapeHtml(t.short)+'» в спецификации ничего нет. Загрузите спецификацию (меню «⋯») или добавьте вручную.</span>'; }
-    else opts.forEach(function(sp){
-      var used=b.mats.some(function(m){ return norm(m.name)===norm(sp.name)&&norm(m.unit)===norm(sp.unit); });
-      var c=document.createElement("button"); c.className="sc"; c.textContent="＋ "+sp.name+(sp.unit?(" ("+sp.unit+")"):"");
-      if(used) c.style.opacity=".4";
-      c.addEventListener("click",function(){ if(used)return; b.mats.push({name:sp.name,unit:sp.unit,qty:(sp.rate!=null?sp.rate:1)}); save(); renderMatSheet(); });
-      sa.appendChild(c);
     });
   }
   ovl3.addEventListener("click",closeMaterials);
@@ -568,97 +644,123 @@
   document.getElementById("matBtn").addEventListener("click",function(){ if(editing) openMaterials(editing); });
   document.getElementById("mAddBtn").addEventListener("click",function(){
     if(!matBar)return; var n=document.getElementById("mName").value.trim();
-    if(!n){ toast("Введите материал"); return; }
+    if(!n){ toast("Введите ресурс"); return; }
     var u=document.getElementById("mUnit").value.trim();
-    var qv=parseFloat((""+document.getElementById("mQty").value).replace(",","."));
-    matBar.mats.push({name:n,unit:u,qty:(isNaN(qv)?1:qv)});
+    var qv=num(document.getElementById("mQty").value);
+    matBar.mats.push({name:n,unit:u,qty:(qv!=null?qv:1),rtype:"Материал"});
     document.getElementById("mName").value=""; document.getElementById("mUnit").value=""; document.getElementById("mQty").value="";
     save(); renderMatSheet();
   });
 
-  // ---- спецификация (CSV) ----
-  function parseCSV(text){
+  // ---- справочник (импорт CSV: элементы + ресурсы) ----
+  function splitCSV(text){
     text=(""+text).replace(/\r\n?/g,"\n").replace(/^\uFEFF/,"");
     var lines=text.split("\n").filter(function(l){return l.trim().length;});
     if(!lines.length) return [];
-    var f=lines[0];
-    var cnt={";":(f.split(";").length-1), ",":(f.split(",").length-1), "\t":(f.split("\t").length-1)};
-    var delim = (cnt["\t"]>=cnt[";"]&&cnt["\t"]>=cnt[","]) ? "\t" : (cnt[";"]>=cnt[","]?";":",");
-    function split(l){ var out=[],cur="",q=false;
-      for(var i=0;i<l.length;i++){ var ch=l[i];
-        if(q){ if(ch==='"'){ if(l[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
-        else { if(ch==='"')q=true; else if(ch===delim){out.push(cur);cur="";} else cur+=ch; } }
+    var f=lines[0]; var cnt={";":(f.split(";").length-1),",":(f.split(",").length-1),"\t":(f.split("\t").length-1)};
+    var delim=(cnt["\t"]>=cnt[";"]&&cnt["\t"]>=cnt[","])?"\t":(cnt[";"]>=cnt[","]?";":",");
+    function sp(l){ var out=[],cur="",q=false; for(var i=0;i<l.length;i++){ var ch=l[i];
+      if(q){ if(ch==='"'){ if(l[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
+      else { if(ch==='"')q=true; else if(ch===delim){out.push(cur);cur="";} else cur+=ch; } }
       out.push(cur); return out.map(function(s){return s.trim();}); }
-    var rows=lines.map(split);
+    var rows=lines.map(sp);
     var h=rows[0].join(" ").toLowerCase();
-    var start = /вид|работ|материал|material|type|unit|ед|наимен/.test(h) ? 1 : 0;
-    var res=[];
-    for(var i=start;i<rows.length;i++){ var r=rows[i]; var name=(r[1]||"").trim(); if(!name) continue;
-      var rr=(r[3]!=null&&r[3]!=="")?parseFloat((""+r[3]).replace(",",".")):null;
-      res.push({typeName:(r[0]||"").trim(), name:name, unit:(r[2]||"").trim(), rate:(isNaN(rr)?null:rr)}); }
-    return res;
+    if(/дисциплин|элемент|ресурс|расход|тип/.test(h)) rows.shift();
+    return rows;
+  }
+  function importSpravochnik(text){
+    var rows=splitCSV(text); if(!rows.length) return 0;
+    var newRes={}, palIdx=state.types.length, count=0;
+    rows.forEach(function(r){
+      var name=(r[1]||"").trim(); if(!name) return;
+      var disc=(r[0]||"").trim(), unit=(r[2]||"").trim(), pv=num(r[3]);
+      var el=elemByName(name);
+      if(!el){ el={id:"u"+(typeSeq++), short:name, color:PALETTE[palIdx++ % PALETTE.length], disc:disc, unit:unit||"ед.", projVol:(pv||0)};
+        el.ink=inkFor(el.color); state.types.push(el); }
+      else { if(disc)el.disc=disc; if(unit)el.unit=unit; if(pv!=null)el.projVol=pv; }
+      var cat={rtype:(r[4]||"Материал").trim(), name:(r[5]||"").trim(), unit:(r[6]||"").trim(), total:num(r[7])};
+      if(!cat.name) return;
+      (newRes[el.id]=newRes[el.id]||[]).push(cat); count++;
+    });
+    Object.keys(newRes).forEach(function(id){ state.elemRes[id]=newRes[id]; });
+    return count;
   }
   var specFile=document.getElementById("specFile");
   function openSpecSheet(){ renderSpecView(); ovl4.classList.add("on"); specSheet.classList.add("on"); }
   function closeSpecSheet(){ ovl4.classList.remove("on"); specSheet.classList.remove("on"); }
   function renderSpecView(){
     var v=document.getElementById("specView"); v.innerHTML="";
-    if(!state.spec.length){ v.innerHTML='<div class="empty" style="color:var(--muted);font-size:13px;padding:6px">Спецификация не загружена.</div>'; return; }
-    var byType={}, ordered=[];
-    state.spec.forEach(function(m){ if(!byType[m.typeName]){ byType[m.typeName]=[]; ordered.push(m.typeName); } byType[m.typeName].push(m); });
-    ordered.forEach(function(tn){
-      var match=allTypes().some(function(t){ return norm(t.short)===norm(tn); });
+    var ids=Object.keys(state.elemRes||{}).filter(function(id){return (state.elemRes[id]||[]).length;});
+    if(!ids.length){ v.innerHTML='<div class="empty" style="color:var(--muted);font-size:13px;padding:6px">Справочник не загружен.</div>'; return; }
+    ids.forEach(function(id){
+      var el=typeById(id); var rs=state.elemRes[id];
       var head=document.createElement("div"); head.className="svhead";
-      head.innerHTML='<span>'+escapeHtml(tn||"(без вида)")+'</span>'+(match?"":'<span class="warn">⚠ нет такого вида работ</span>');
+      head.innerHTML='<span class="chip" style="background:'+el.color+'"></span><span>'+escapeHtml(el.short)+' · '+(el.projVol||0)+' '+escapeHtml(el.unit||"")+'</span>'+((!el.projVol)?'<span class="warn">⚠ нет объёма</span>':'');
       v.appendChild(head);
-      byType[tn].forEach(function(m){ var r=document.createElement("div"); r.className="svrow";
-        r.innerHTML='<span class="t">'+escapeHtml(m.name)+'</span><span class="q">'+escapeHtml(m.unit||"")+(m.rate!=null?(" · норма "+m.rate):"")+'</span>'; v.appendChild(r); });
+      rs.forEach(function(m){ var r=document.createElement("div"); r.className="svrow";
+        r.innerHTML='<span class="t">['+(m.rtype||"")[0]+'] '+escapeHtml(m.name)+'</span><span class="q">'+(m.total!=null?fmtNum(m.total):"")+" "+escapeHtml(m.unit||"")+'</span>'; v.appendChild(r); });
     });
   }
   ovl4.addEventListener("click",closeSpecSheet);
   document.getElementById("specCloseBtn").addEventListener("click",closeSpecSheet);
   document.getElementById("specImportBtn").addEventListener("click",function(){ specFile.click(); });
-  document.getElementById("specClearBtn").addEventListener("click",function(){ if(!confirm("Очистить спецификацию?"))return; state.spec=[]; save(); renderSpecView(); toast("Спецификация очищена"); });
+  document.getElementById("specClearBtn").addEventListener("click",function(){ if(!confirm("Очистить справочник (ресурсы элементов)?"))return; state.elemRes={}; save(); renderSpecView(); render(); toast("Справочник очищен"); });
   specFile.addEventListener("change",function(){ var file=specFile.files&&specFile.files[0]; if(!file)return;
     var r=new FileReader();
     r.onload=function(){ var buf=r.result, txt="";
       try{ txt=new TextDecoder("utf-8",{fatal:false}).decode(buf); }catch(e){ txt=""; }
       if(/\uFFFD/.test(txt)){ try{ txt=new TextDecoder("windows-1251").decode(buf); }catch(e){} }
-      var parsed=parseCSV(txt);
-      if(!parsed.length){ toast("Не удалось прочитать CSV"); specFile.value=""; return; }
-      state.spec=parsed; save(); renderSpecView(); toast("Загружено позиций: "+parsed.length); specFile.value="";
+      var n=importSpravochnik(txt);
+      if(!n){ toast("Не удалось прочитать CSV"); specFile.value=""; return; }
+      save(); renderSpecView(); render(); if(editing){ buildTypeChips(); markSelected(); refreshPkg(); }
+      toast("Загружено строк: "+n); specFile.value="";
     };
     r.onerror=function(){ toast("Ошибка чтения файла"); specFile.value=""; };
     r.readAsArrayBuffer(file);
   });
 
-  // ---- сводка материалов ----
-  function fmtNum(n){ return (Math.round(n*1000)/1000).toString().replace(".",","); }
+  // ---- сводка: категории (план) + готовность по элементам ----
   function computeSummary(){
-    var map={}, order=[];
-    state.bars.forEach(function(b){ (b.mats||[]).forEach(function(m){
-      var key=norm(m.name)+"|"+norm(m.unit);
-      if(!map[key]){ map[key]={name:m.name,unit:m.unit,qty:0}; order.push(key); }
-      map[key].qty += (parseFloat(m.qty)||0);
-    }); });
-    return order.map(function(k){return map[k];}).sort(function(a,b){return a.name.localeCompare(b.name,"ru");});
+    var cat={}, corder=[], el={}, eorder=[];
+    state.bars.forEach(function(b){
+      if(b.typeId===null) return;
+      pkgResources(b).forEach(function(r){
+        var key=norm(r.name)+"|"+norm(r.unit);
+        if(!cat[key]){ cat[key]={name:r.name,unit:r.unit,rtype:r.rtype,qty:0}; corder.push(key); }
+        cat[key].qty+=(r.qty||0);
+      });
+      var t=typeById(b.typeId);
+      if(!el[b.typeId]){ el[b.typeId]={name:t.short,unit:t.unit,plan:0,fact:0}; eorder.push(b.typeId); }
+      el[b.typeId].plan+=(num(b.pkgVol)||0); el[b.typeId].fact+=(num(b.fact)||0);
+    });
+    var cats=corder.map(function(k){return cat[k];}).sort(function(a,b){return a.name.localeCompare(b.name,"ru");});
+    var elems=eorder.map(function(k){var e=el[k]; e.pct=(e.plan>0?Math.round(e.fact/e.plan*100):0); return e;});
+    return {cats:cats, elems:elems};
   }
-  function openSummary(){ var v=document.getElementById("sumView"); v.innerHTML=""; var rows=computeSummary();
-    if(!rows.length){ v.innerHTML='<div style="color:var(--muted);font-size:13px;padding:6px">Материалы к работам ещё не добавлены.</div>'; }
-    else rows.forEach(function(r){ var el=document.createElement("div"); el.className="svrow";
-      el.innerHTML='<span class="t">'+escapeHtml(r.name)+'</span><span class="q">'+fmtNum(r.qty)+" "+escapeHtml(r.unit||"")+'</span>'; v.appendChild(el); });
+  function openSummary(){ var v=document.getElementById("sumView"); v.innerHTML=""; var s=computeSummary();
+    var hh=document.createElement("div"); hh.className="svhead"; hh.innerHTML='<span>Готовность по элементам</span>'; v.appendChild(hh);
+    if(!s.elems.length){ var e0=document.createElement("div"); e0.style.cssText="color:var(--muted);font-size:13px;padding:6px"; e0.textContent="Пакеты ещё не привязаны к элементам."; v.appendChild(e0); }
+    s.elems.forEach(function(e){ var row=document.createElement("div"); row.className="svrow";
+      row.innerHTML='<span class="t">'+escapeHtml(e.name)+'</span><span class="q">'+fmtNum(e.fact)+" / "+fmtNum(e.plan)+" "+escapeHtml(e.unit||"")+" · "+e.pct+"%</span>"; v.appendChild(row); });
+    var hh2=document.createElement("div"); hh2.className="svhead"; hh2.style.marginTop="10px"; hh2.innerHTML='<span>Категории ресурса (план по пакетам)</span>'; v.appendChild(hh2);
+    if(!s.cats.length){ var e1=document.createElement("div"); e1.style.cssText="color:var(--muted);font-size:13px;padding:6px"; e1.textContent="Категории появятся после выбора элемента и объёма."; v.appendChild(e1); }
+    s.cats.forEach(function(m){ var row=document.createElement("div"); row.className="svrow";
+      var tag=(m.rtype==="Работа")?"Р":((m.rtype==="Техника")?"Т":"М");
+      row.innerHTML='<span class="t">['+tag+'] '+escapeHtml(m.name)+'</span><span class="q">'+fmtNum(m.qty)+" "+escapeHtml(m.unit||"")+'</span>'; v.appendChild(row); });
+    var note=document.createElement("div"); note.style.cssText="color:var(--muted);font-size:12px;padding:8px 2px 0"; note.textContent="Стоимость и заказ конкретных изделий — следующий этап (детализация справочника)."; v.appendChild(note);
     ovl5.classList.add("on"); sumSheet.classList.add("on");
   }
   function closeSummary(){ ovl5.classList.remove("on"); sumSheet.classList.remove("on"); }
   ovl5.addEventListener("click",closeSummary);
   document.getElementById("sumCloseBtn").addEventListener("click",closeSummary);
   document.getElementById("sumExportBtn").addEventListener("click",function(){
-    var rows=computeSummary(); if(!rows.length){ toast("Нет материалов"); return; }
-    var lines=["Материал;Ед.;Количество"];
-    rows.forEach(function(r){ lines.push('"'+(r.name||"").replace(/"/g,'""')+'";'+(r.unit||"")+";"+fmtNum(r.qty)); });
+    var s=computeSummary(); if(!s.cats.length && !s.elems.length){ toast("Нет данных"); return; }
+    var lines=["РАЗДЕЛ;Название;Ед.;Значение"];
+    s.elems.forEach(function(e){ lines.push('Готовность;"'+(e.name||"").replace(/"/g,'""')+'";'+(e.unit||"")+";"+fmtNum(e.fact)+" из "+fmtNum(e.plan)+" ("+e.pct+"%)"); });
+    s.cats.forEach(function(m){ lines.push('Категория ('+(m.rtype||"")+');"'+(m.name||"").replace(/"/g,'""')+'";'+(m.unit||"")+";"+fmtNum(m.qty)); });
     try{
       var blob=new Blob(["\uFEFF"+lines.join("\r\n")],{type:"text/csv"}); var url=URL.createObjectURL(blob);
-      var a=document.createElement("a"); a.href=url; a.download="materialy-"+iso(today)+".csv"; document.body.appendChild(a); a.click(); a.remove();
+      var a=document.createElement("a"); a.href=url; a.download="svodka-"+iso(today)+".csv"; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(function(){URL.revokeObjectURL(url);},1000); toast("CSV сохранён в загрузки");
     }catch(e){ toast("Не удалось выгрузить"); }
   });
@@ -673,7 +775,7 @@
   load(function(){
     render();
     var sc=document.getElementById("scroll"); sc.scrollLeft=Math.max(0,todayDay*DAYW-40);
-    setTimeout(function(){ toast("Тяни концы — начало/конец. Коснись полосы — вид работ и текст."); },400);
+    setTimeout(function(){ toast("Загрузи справочник (меню «⋯»), затем на полосе выбери элемент и объём."); },400);
   });
   window.addEventListener("resize",render);
 })();
