@@ -178,6 +178,7 @@
   .sumtot{display:flex;justify-content:space-between;gap:12px;background:#fbfcfd;border-radius:10px;padding:10px 12px;font-size:14px;margin-bottom:6px}
   #tDisc{background:#fff}
   #calcEl{width:100%;border:1.5px solid var(--grid-strong);border-radius:10px;padding:11px;font-size:15px;background:#fff}
+  .field select{width:100%;border:1.5px solid var(--grid-strong);border-radius:10px;padding:11px;font-size:15px;background:#fff;color:var(--ink)}
   .calcrow{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:7px 2px;border-bottom:1px solid var(--grid)}
   .calcrow .cmark{font-size:13px;font-weight:600;color:var(--ink);flex:1;min-width:0}
   .calcrow .cnums{display:flex;flex-direction:column;align-items:flex-end;gap:1px;flex:0 0 auto}
@@ -270,7 +271,11 @@
 <div class="sheet" id="sheet">
   <div class="grab"></div>
   <h2>Элемент</h2>
-  <div class="types" id="types"></div>
+  <div class="fields">
+    <div class="field"><label>Дисциплина</label><select id="selDisc"></select></div>
+    <div class="field"><label>Элемент</label><select id="selElem"></select></div>
+  </div>
+  <button class="btn ghost" id="addElemBtn" style="width:100%;margin:-2px 0 12px;border-style:dashed">＋ Новый элемент</button>
   <div class="pkgvol" id="pkgVolRow">
     <div class="field"><label>Объём пакета (<span id="pvUnit">ед.</span>)</label><input id="fPkgVol" inputmode="decimal" placeholder="напр. 90"></div>
     <div class="field"><label>% от элемента</label><input id="fPkgPct" inputmode="decimal" placeholder="%"></div>
@@ -754,26 +759,46 @@
   }
 
   // ---- editor ----
-  var ovl=document.getElementById("ovl"), sheet=document.getElementById("sheet"), typesEl=document.getElementById("types");
+  var ovl=document.getElementById("ovl"), sheet=document.getElementById("sheet");
   var fNote=document.getElementById("fNote"), fContr=document.getElementById("fContr");
   var fPkgVol=document.getElementById("fPkgVol"), fPkgPct=document.getElementById("fPkgPct");
   var fFact=document.getElementById("fFact"), fDone=document.getElementById("fDone"), fvUnit=document.getElementById("fvUnit");
   var pvUnit=document.getElementById("pvUnit"), pvInfo=document.getElementById("pvInfo");
   var editing=null;
-  function buildTypeChips(){
-    typesEl.innerHTML="";
-    groupOrder().forEach(function(t){
-      var c=document.createElement("div"); c.className="type"; c.dataset.id=(t.id===null?"__none":t.id);
-      c.innerHTML='<span class="chip" style="background:'+t.color+'"></span>'+t.short;
-      c.addEventListener("click",function(){ if(!editing)return; editing.typeId=(t.id===null?null:t.id); editing.resOv={}; markSelected(); refreshPkg(); updateBarLabel(editing); updateMatBtn(); save(); render(); });
-      typesEl.appendChild(c);
-    });
-    var add=document.createElement("div"); add.className="type add"; add.innerHTML='＋ Новый элемент';
-    add.addEventListener("click",function(){ openTypeSheet(); });
-    typesEl.appendChild(add);
+  var selDisc=document.getElementById("selDisc"), selElem=document.getElementById("selElem");
+  function discsWithElems(){
+    var set={}, order=[];
+    allTypes().forEach(function(t){ var d=t.disc||"Без дисциплины"; if(!set[d]){set[d]=1; order.push(d);} });
+    order.sort(function(a,b){ var ia=DISCIPLINES.indexOf(a), ib=DISCIPLINES.indexOf(b); ia=ia<0?99:ia; ib=ib<0?99:ib; return ia-ib || a.localeCompare(b,"ru"); });
+    return order;
   }
-  function markSelected(){ var cur=editing?(editing.typeId===null?"__none":editing.typeId):null;
-    Array.prototype.forEach.call(typesEl.children,function(c){ c.classList.toggle("sel",c.dataset.id===cur); }); }
+  function elemsOfDisc(d){ return allTypes().filter(function(t){ return (t.disc||"Без дисциплины")===d; }); }
+  function fillDiscSel(cur){
+    selDisc.innerHTML=""; var ds=discsWithElems();
+    if(!ds.length){ var o=document.createElement("option"); o.value=""; o.textContent="— нет элементов (загрузите справочник) —"; selDisc.appendChild(o); return; }
+    ds.forEach(function(d){ var o=document.createElement("option"); o.value=d; o.textContent=d; selDisc.appendChild(o); });
+    selDisc.value=(cur && ds.indexOf(cur)>=0)?cur:ds[0];
+  }
+  function fillElemSel(disc, curId){
+    selElem.innerHTML="";
+    var none=document.createElement("option"); none.value="__none"; none.textContent="— не выбрано —"; selElem.appendChild(none);
+    elemsOfDisc(disc).forEach(function(t){ var o=document.createElement("option"); o.value=t.id; o.textContent=t.short+(t.projVol?(" · "+t.projVol+" "+(t.unit||"")):""); selElem.appendChild(o); });
+    selElem.value=(curId!=null)?curId:"__none"; if(selElem.selectedIndex<0) selElem.value="__none";
+  }
+  function buildElemSelectors(){
+    var t=typeById(editing?editing.typeId:null);
+    var curDisc=(editing&&editing.typeId!=null)?(t.disc||"Без дисциплины"):null;
+    fillDiscSel(curDisc);
+    fillElemSel(selDisc.value, (editing&&editing.typeId!=null)?editing.typeId:null);
+  }
+  function applyElem(){
+    if(!editing) return;
+    editing.typeId=(selElem.value==="__none"||selElem.value==="")?null:selElem.value;
+    editing.resOv={}; refreshPkg(); updateBarLabel(editing); updateMatBtn(); save(); render();
+  }
+  selDisc.addEventListener("change",function(){ fillElemSel(selDisc.value,null); applyElem(); });
+  selElem.addEventListener("change",applyElem);
+  document.getElementById("addElemBtn").addEventListener("click",function(){ openTypeSheet(); });
   function refreshPkg(){
     if(!editing) return; var el=typeById(editing.typeId);
     pvUnit.textContent=el.unit||"ед."; fvUnit.textContent=el.unit||"ед.";
@@ -789,7 +814,7 @@
     out.sort(function(a,b){return a.localeCompare(b,"ru");});
     dl.innerHTML=""; out.forEach(function(c){ var o=document.createElement("option"); o.value=c; dl.appendChild(o); });
   }
-  function openEditor(b){ editing=b; buildTypeChips(); fNote.value=b.note||""; fContr.value=b.contr||""; fillContractors(); markSelected(); refreshPkg(); updateMatBtn(); ovl.classList.add("on"); sheet.classList.add("on"); }
+  function openEditor(b){ editing=b; buildElemSelectors(); fNote.value=b.note||""; fContr.value=b.contr||""; fillContractors(); refreshPkg(); updateMatBtn(); ovl.classList.add("on"); sheet.classList.add("on"); }
   function moveBar(dir){
     if(!editing) return; var known=knownIdSet();
     var grp=state.bars.filter(function(b){ return effTypeId(b,known)===effTypeId(editing,known); }).sort(function(a,b){return a.order-b.order;});
@@ -834,7 +859,7 @@
     if(!confirm("Удалить элемент? Полоски станут «Без вида», ресурсы элемента удалятся.")) return;
     state.types=state.types.filter(function(t){return t.id!==id;}); if(state.elemRes) delete state.elemRes[id];
     state.bars.forEach(function(b){ if(b.typeId===id) b.typeId=null; });
-    save(); render(); renderTypeList(); if(sheet.classList.contains("on")){ buildTypeChips(); markSelected(); } toast("Элемент удалён"); });
+    save(); render(); renderTypeList(); if(sheet.classList.contains("on")){ buildElemSelectors(); } toast("Элемент удалён"); });
   function fillDisc(){ tDisc.innerHTML=""; DISCIPLINES.forEach(function(d){ var o=document.createElement("option"); o.value=d; o.textContent=d; tDisc.appendChild(o); }); }
   function fillUnits(){
     var dl=document.getElementById("unitOpts"); if(!dl) return;
@@ -852,7 +877,7 @@
     var name=tName.value.trim(); if(!name){ toast("Введите имя элемента"); return; }
     var t={id:"u"+(typeSeq++), short:name, color:selColor, ink:inkFor(selColor), disc:(tDisc.value||DISCIPLINES[0]), unit:(tUnit.value.trim()||"ед."), projVol:(num(tVol.value)||0)};
     state.types.push(t); save(); tName.value=""; tUnit.value=""; tVol.value=""; renderTypeList();
-    if(editing && sheet.classList.contains("on")){ editing.typeId=t.id; editing.resOv={}; render(); buildTypeChips(); markSelected(); refreshPkg(); closeTypeSheet(); }
+    if(editing && sheet.classList.contains("on")){ editing.typeId=t.id; editing.resOv={}; render(); buildElemSelectors(); refreshPkg(); closeTypeSheet(); }
     else { render(); }
     toast("Элемент добавлен: "+name);
   });
@@ -1044,7 +1069,7 @@
   specFile.addEventListener("change",function(){ var file=specFile.files&&specFile.files[0]; if(!file)return;
     readCsv(file,function(txt){ var n=importSpravochnik(txt);
       if(!n){ toast("Не удалось прочитать CSV"); specFile.value=""; return; }
-      save(); renderSpecView(); render(); if(editing){ buildTypeChips(); markSelected(); refreshPkg(); }
+      save(); renderSpecView(); render(); if(editing){ buildElemSelectors(); refreshPkg(); }
       toast("Категории: загружено "+n); specFile.value=""; });
   });
   detFile.addEventListener("change",function(){ var file=detFile.files&&detFile.files[0]; if(!file)return;
@@ -1214,11 +1239,20 @@
 
   // ---- калькулятор закупки (марки + расход на элемент) ----
   var ovl8=document.getElementById("ovl8"), calcSheet=document.getElementById("calcSheet"), calcEl=document.getElementById("calcEl");
+  function buyStep(unit){ var u=(unit||"").toLowerCase(); return /шт|поддон|карт|компл|упак|рулон|маш|чел|мешок/.test(u)?1:0.5; }
+  function roundBuy(q, unit){ var s=buyStep(unit); return Math.floor(q/s + 1e-9)*s; }
   function openCalc(){
     var opts=allTypes().filter(function(t){ return elemRes(t.id).some(function(r){return r.rtype==="Материал";}); });
     calcEl.innerHTML="";
     if(!opts.length){ calcEl.innerHTML='<option>Нет элементов — загрузите справочник</option>'; }
-    opts.forEach(function(t){ var o=document.createElement("option"); o.value=t.id; o.textContent=t.short; calcEl.appendChild(o); });
+    else {
+      var byd={}, order=[];
+      opts.forEach(function(t){ var d=t.disc||"Без дисциплины"; if(!byd[d]){byd[d]=[];order.push(d);} byd[d].push(t); });
+      order.sort(function(a,b){ var ia=DISCIPLINES.indexOf(a),ib=DISCIPLINES.indexOf(b); ia=ia<0?99:ia; ib=ib<0?99:ib; return ia-ib||a.localeCompare(b,"ru"); });
+      order.forEach(function(d){ var g=document.createElement("optgroup"); g.label=d;
+        byd[d].forEach(function(t){ var o=document.createElement("option"); o.value=t.id; o.textContent=t.short; g.appendChild(o); });
+        calcEl.appendChild(g); });
+    }
     calcSetDefaults(); renderCalc(); ovl8.classList.add("on"); calcSheet.classList.add("on");
   }
   function calcSetDefaults(){ var t=typeById(calcEl.value); document.getElementById("calcUnit").textContent=t.unit||"ед.";
@@ -1243,12 +1277,12 @@
       anyDetail=true;
       det.forEach(function(d){
         var rash=(num(d.perCat)||0)*effVol;
-        var conv=num(d.conv)||1; var buy=Math.ceil(rash/conv);
+        var conv=num(d.conv)||1; var buy=roundBuy(rash/conv, d.buyUnit);
         var sum=buy*(num(d.price)||0); total+=sum;
         var row=document.createElement("div"); row.className="calcrow";
         row.innerHTML='<div class="cmark">'+escapeHtml(d.name)+'</div>'+
           '<div class="cnums"><span class="crash">'+fmtNum(Math.round(rash*100)/100)+' '+escapeHtml(d.unit||"")+'</span>'+
-          '<span class="cbuy">→ '+buy+' '+escapeHtml(d.buyUnit||"")+'</span>'+
+          '<span class="cbuy">→ '+fmtNum(buy)+' '+escapeHtml(d.buyUnit||"")+'</span>'+
           '<span class="csum">'+fmtMoney(sum)+' ₽</span></div>';
         v.appendChild(row);
       });
@@ -1267,8 +1301,8 @@
     var mats=elemRes(t.id).filter(function(r){return r.rtype==="Материал";});
     var lines=["Элемент;"+t.short+";объём;"+fmtNum(V)+" "+(t.unit||""), "", "Категория;Марка/изделие;Расход;Ед.;К закупке;Ед. закупки;Цена;Сумма, ₽"]; var total=0;
     mats.forEach(function(c){ var effVol=(num(c.total)||0)*(PV>0?V/PV:0); var det=(state.detail&&state.detail[c.name])||[];
-      det.forEach(function(d){ var rash=(num(d.perCat)||0)*effVol; var buy=Math.ceil(rash/(num(d.conv)||1)); var sum=buy*(num(d.price)||0); total+=sum;
-        lines.push('"'+c.name+'";"'+(d.name||"").replace(/"/g,'""')+'";'+fmtNum(Math.round(rash*100)/100)+";"+(d.unit||"")+";"+buy+";"+(d.buyUnit||"")+";"+(num(d.price)||0)+";"+Math.round(sum)); }); });
+      det.forEach(function(d){ var rash=(num(d.perCat)||0)*effVol; var buy=roundBuy(rash/(num(d.conv)||1), d.buyUnit); var sum=buy*(num(d.price)||0); total+=sum;
+        lines.push('"'+c.name+'";"'+(d.name||"").replace(/"/g,'""')+'";'+fmtNum(Math.round(rash*100)/100)+";"+(d.unit||"")+";"+fmtNum(buy)+";"+(d.buyUnit||"")+";"+(num(d.price)||0)+";"+Math.round(sum)); }); });
     lines.push(";;;;;;ИТОГО;"+Math.round(total));
     try{ var blob=new Blob(["\uFEFF"+lines.join("\r\n")],{type:"text/csv"}); var url=URL.createObjectURL(blob);
       var a=document.createElement("a"); a.href=url; a.download="zakupka-"+t.short.replace(/[^\wа-яА-Я]+/g,"_")+".csv"; document.body.appendChild(a); a.click(); a.remove();
@@ -1320,7 +1354,7 @@
   statusEl=document.getElementById("status");
   try{ var zsaved=parseInt(lsGet("gantt_zoom")); if(!isNaN(zsaved)&&zsaved>=0&&zsaved<ZOOMS.length){ zi=zsaved; DAYW=ZOOMS[zi]; WEEKW=DAYW*7; } }catch(e){}
   applyZoomVars();
-  buildHeader(); buildTypeChips();
+  buildHeader();
   load(function(){
     render();
     var sc=document.getElementById("scroll"); sc.scrollLeft=Math.max(0,todayDay*DAYW - sc.clientWidth/2);
