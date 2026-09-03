@@ -82,6 +82,11 @@
   .labcell.tot{color:var(--ink);font-weight:800}
   .labcell.tot.has{background:#2C3E50;color:#fff}
   .lablabel>i.tot{background:#2C3E50;color:#fff;width:auto;height:16px;top:4px;padding:0 5px;border-radius:5px;font-size:10px;font-weight:800;line-height:16px;text-align:center}
+  .labchart{display:flex;align-items:flex-end;height:88px;border-top:1px solid var(--grid);padding-bottom:2px;background:#fff}
+  .lccol{flex:0 0 var(--weekW);height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;border-left:1px solid var(--grid)}
+  .lcnum{font-size:10px;font-weight:800;color:var(--ink);margin-bottom:2px}
+  .lcbar{width:58%;max-width:26px;display:flex;flex-direction:column;border-radius:3px 3px 0 0;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.05)}
+  .lcseg{width:100%}
 
   .today{position:absolute;top:0;bottom:0;width:2px;background:var(--today);z-index:6;pointer-events:none}
   .today::before{content:"сегодня";position:absolute;top:2px;left:4px;font-size:9px;font-weight:700;
@@ -651,6 +656,25 @@
     for(var w=0; w<WEEKS; w++){ var sum=0; L.contrs.forEach(function(c){ var mh=L.weeks[w][c]||0; if(mh>0) sum+=Math.ceil(mh/WORKWEEK); });
       var cc=document.createElement("div"); cc.className="labcell tot"+(sum>0?" has":""); cc.textContent=sum>0?sum:""; tcells.appendChild(cc); }
     trow.appendChild(tcells); wrap.appendChild(trow);
+    // столбчатая диаграмма потребности (стек по подрядчикам)
+    var totals=[]; var maxT=0;
+    for(var w=0; w<WEEKS; w++){ var s=0; L.contrs.forEach(function(c){ var mh=L.weeks[w][c]||0; if(mh>0) s+=Math.ceil(mh/WORKWEEK); }); totals.push(s); if(s>maxT)maxT=s; }
+    if(maxT>0){
+      var chart=document.createElement("div"); chart.className="labchart";
+      var maxBarH=64;
+      for(var w=0; w<WEEKS; w++){
+        var col=document.createElement("div"); col.className="lccol";
+        if(totals[w]>0){
+          var num=document.createElement("div"); num.className="lcnum"; num.textContent=totals[w]; col.appendChild(num);
+          var barh=Math.max(3, Math.round(totals[w]/maxT*maxBarH));
+          var bar=document.createElement("div"); bar.className="lcbar"; bar.style.height=barh+"px";
+          L.contrs.forEach(function(c,ci){ var mh=L.weeks[w][c]||0; var n=mh>0?Math.ceil(mh/WORKWEEK):0; if(n>0){ var seg=document.createElement("div"); seg.className="lcseg"; seg.style.height=(n/totals[w]*100)+"%"; seg.style.background=PROFCOL[ci%PROFCOL.length]; bar.appendChild(seg); } });
+          col.appendChild(bar);
+        }
+        chart.appendChild(col);
+      }
+      chart.style.width=(DAYS*DAYW)+"px"; wrap.appendChild(chart);
+    }
     groupsEl.appendChild(wrap);
   }
   var ROLLH=14, L1ROWH=24;
@@ -1194,6 +1218,16 @@
   });
   window.addEventListener("resize",render);
   loadWeather();
+  function refreshToday(){
+    var t=startOfDay(new Date()); if(+t===+today) return;
+    today=t; todayDay=dateToDay(t);
+    var el=document.getElementById("today"); if(el) el.style.left=(todayDay*DAYW)+"px";
+    loadWeather();
+  }
+  document.addEventListener("visibilitychange",function(){ if(!document.hidden) refreshToday(); });
+  window.addEventListener("focus",refreshToday);
+  window.addEventListener("pageshow",refreshToday);
+  setInterval(refreshToday, 30*60*1000);
 })();
 </script>
 <script>
