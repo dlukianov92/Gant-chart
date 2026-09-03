@@ -71,17 +71,16 @@
   .labhead{background:#eef2f8;cursor:default}
   .lableg{gap:6px !important}
   .lableg .legit{display:inline-flex;align-items:center;gap:4px;margin-left:8px;font-weight:700;color:var(--ink)}
-  .labrow{position:relative;height:24px;display:flex;border-bottom:1px solid var(--grid)}
+  .labrow{position:relative;height:22px;display:flex;border-bottom:1px solid rgba(0,0,0,.04)}
   .lablabel{position:sticky;left:0;flex:0 0 0;width:0;z-index:5}
-  .lablabel>i{position:absolute;left:4px;top:6px;width:12px;height:12px;border-radius:4px;display:block;box-shadow:0 0 0 2px #fff}
+  .lablabel>i{position:absolute;left:4px;top:5px;width:12px;height:12px;border-radius:4px;display:block;box-shadow:0 0 0 2px #fff}
   .labcells{display:flex;height:100%;flex:0 0 auto}
   .labcell{flex:0 0 var(--weekW);display:flex;align-items:center;justify-content:center;
-    font-size:11px;font-weight:800;color:var(--muted);border-left:1px solid var(--grid)}
-  .labcell.has{color:#fff}
-  .labrow.labtot{border-top:1.5px solid var(--grid-strong);background:#f3f6fb}
-  .labcell.tot{color:var(--ink);font-weight:800}
-  .labcell.tot.has{background:#2C3E50;color:#fff}
-  .lablabel>i.tot{background:#2C3E50;color:#fff;width:auto;height:16px;top:4px;padding:0 5px;border-radius:5px;font-size:10px;font-weight:800;line-height:16px;text-align:center}
+    font-size:11px;font-weight:700;color:var(--muted);border-left:1px solid rgba(0,0,0,.04);background:transparent}
+  .labrow.labtot{border-top:1px solid var(--grid-strong);background:transparent}
+  .labcell.tot{color:var(--muted);font-weight:800}
+  .labcell.tot.has{color:#2C3E50}
+  .lablabel>i.tot{background:#2C3E50;color:#fff;width:auto;height:15px;top:4px;padding:0 5px;border-radius:5px;font-size:10px;font-weight:800;line-height:15px;text-align:center}
   .labchart{display:flex;align-items:flex-end;height:88px;border-top:1px solid var(--grid);padding-bottom:2px;background:#fff}
   .lccol{flex:0 0 var(--weekW);height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;border-left:1px solid var(--grid)}
   .lcnum{font-size:10px;font-weight:800;color:var(--ink);margin-bottom:2px}
@@ -89,6 +88,7 @@
   .lcseg{width:100%}
 
   .today{position:absolute;top:0;bottom:0;width:2px;background:var(--today);z-index:6;pointer-events:none}
+  .today::before{content:"сегодня";position:absolute;top:1px;left:3px;font-size:9px;font-weight:800;color:var(--today);white-space:nowrap;background:rgba(255,255,255,.75);padding:0 2px;border-radius:3px}
   .today::before{content:"сегодня";position:absolute;top:2px;left:4px;font-size:9px;font-weight:700;
     color:var(--today);background:var(--panel);padding:1px 3px;border-radius:4px;white-space:nowrap}
 
@@ -177,6 +177,14 @@
   .pvinfo{flex-basis:100%;font-size:11px;color:var(--muted);font-weight:600;margin-top:2px}
   .sumtot{display:flex;justify-content:space-between;gap:12px;background:#fbfcfd;border-radius:10px;padding:10px 12px;font-size:14px;margin-bottom:6px}
   #tDisc{background:#fff}
+  #calcEl{width:100%;border:1.5px solid var(--grid-strong);border-radius:10px;padding:11px;font-size:15px;background:#fff}
+  .calcrow{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:7px 2px;border-bottom:1px solid var(--grid)}
+  .calcrow .cmark{font-size:13px;font-weight:600;color:var(--ink);flex:1;min-width:0}
+  .calcrow .cnums{display:flex;flex-direction:column;align-items:flex-end;gap:1px;flex:0 0 auto}
+  .calcrow .crash{font-size:13px;font-weight:800;color:var(--ink)}
+  .calcrow .cbuy{font-size:11px;font-weight:700;color:#16A085}
+  .calcrow .csum{font-size:11px;color:var(--muted);font-weight:600}
+  .calcview{max-height:52vh;overflow:auto}
   .bar .prog{position:absolute;left:0;top:0;bottom:0;background:rgba(255,255,255,.32);border-right:2px solid rgba(255,255,255,.75);pointer-events:none;border-radius:7px 0 0 7px}
   .kpibig{background:linear-gradient(135deg,#2F5496,#3f6fc0);color:#fff;border-radius:14px;padding:16px;text-align:center;margin-bottom:12px}
   .kpibig .kpit{font-size:12px;opacity:.85}
@@ -244,6 +252,7 @@
 
 <div class="menu" id="menu">
   <button data-act="types">Элементы</button>
+  <button data-act="calc">🧮 Калькулятор закупки</button>
   <button data-act="spec">Справочник (импорт)</button>
   <button data-act="kpi">📊 Показатели (готовность · бюджет)</button>
   <button data-act="cashflow">💸 Кэшфло (недели / месяцы)</button>
@@ -326,15 +335,33 @@
 <div class="sheet" id="specSheet">
   <div class="grab"></div>
   <h2>Справочник проекта</h2>
-  <p class="hint">CSV из «spravochnik-import.csv»: <b>Дисциплина; Элемент; Ед. элемента; Проектный объём; Тип; Категория ресурса; Ед. категории; Объём категории на элемент.</b> Создаёт элементы и их категории ресурса. Сохраняйте из Excel как «CSV UTF-8».</p>
+  <p class="hint">1) <b>Справочник (категории)</b> — «spravochnik-import.csv»: элементы и их категории ресурса (для планирования).<br>2) <b>Детализация</b> — «detalizaciya-import.csv»: марки материалов и расход по категориям (для калькулятора закупки).</p>
   <div class="row">
-    <button class="btn primary" id="specImportBtn" style="flex:1">Загрузить CSV</button>
+    <button class="btn primary" id="specImportBtn" style="flex:1">Категории</button>
+    <button class="btn primary" id="detImportBtn" style="flex:1">Детализация</button>
     <button class="btn danger" id="specClearBtn">Очистить</button>
   </div>
   <div class="specview" id="specView"></div>
   <button class="btn" id="specCloseBtn" style="width:100%;margin-top:10px">Закрыть</button>
 </div>
 <input type="file" id="specFile" accept=".csv,text/csv,text/plain" style="display:none">
+<input type="file" id="detFile" accept=".csv,text/csv,text/plain" style="display:none">
+
+<div class="ovl" id="ovl8"></div>
+<div class="sheet" id="calcSheet">
+  <div class="grab"></div>
+  <h2>Калькулятор закупки</h2>
+  <div class="field"><label>Элемент</label><select id="calcEl"></select></div>
+  <div class="pkgvol">
+    <div class="field"><label>Объём (<span id="calcUnit">ед.</span>)</label><input id="calcVol" inputmode="decimal" placeholder="объём"></div>
+    <div class="pvinfo" id="calcInfo"></div>
+  </div>
+  <div class="calcview" id="calcView"></div>
+  <div class="row">
+    <button class="btn primary" id="calcExportBtn" style="flex:1">Экспорт CSV</button>
+    <button class="btn" id="calcCloseBtn" style="flex:1">Закрыть</button>
+  </div>
+</div>
 
 <div class="ovl" id="ovl5"></div>
 <div class="sheet" id="sumSheet">
@@ -474,15 +501,15 @@
   function ddmm(d){ return pad(d.getDate())+"."+pad(d.getMonth()+1); }
   var todayDay=dateToDay(today);
 
-  var state={bars:[], types:[], elemRes:{}}; var seq=1;
+  var state={bars:[], types:[], elemRes:{}, detail:{}}; var seq=1;
   function clampDay(x){ return Math.max(0,Math.min(DAYS,x)); }
   function defaultBars(){
     var arr=[]; for(var i=0;i<20;i++){ arr.push({id:"b"+(seq++),order:i,typeId:null,start:i,end:i+5,note:"",contr:"",pkgVol:"",fact:"",resOv:{},mats:[]}); } return arr;
   }
   function serialize(){
-    return JSON.stringify({v:5, savedAt:new Date().toISOString(),
+    return JSON.stringify({v:6, savedAt:new Date().toISOString(),
       types:state.types.map(function(t){ return {id:t.id, short:t.short, color:t.color, disc:t.disc||"", unit:t.unit||"", projVol:t.projVol||0}; }),
-      elemRes:state.elemRes,
+      elemRes:state.elemRes, detail:state.detail,
       bars:state.bars.map(function(b){
       return {id:b.id,order:b.order,typeId:b.typeId,s:iso(dayToDate(b.start)),e:iso(dayToDate(b.end)),note:b.note,contr:b.contr,
         pkgVol:(b.pkgVol!=null?b.pkgVol:""), fact:(b.fact!=null?b.fact:""), resOv:(b.resOv||{}),
@@ -493,7 +520,7 @@
     try{ var o=JSON.parse(raw); if(!o||!o.bars||!o.bars.length) return false;
       state.types=(o.types||[]).map(function(t){ return {id:t.id, short:t.short||t.name||"Элемент", color:t.color||"#888", ink:inkFor(t.color||"#888"), disc:t.disc||"", unit:t.unit||"", projVol:(t.projVol!=null?t.projVol:0)}; });
       var tmx=0; state.types.forEach(function(t){ var n=parseInt((t.id||"u0").replace(/\D/g,""))||0; if(n>tmx)tmx=n; }); typeSeq=tmx+1;
-      state.elemRes=o.elemRes||{};
+      state.elemRes=o.elemRes||{}; state.detail=o.detail||{};
       state.bars=o.bars.map(function(b,idx){
         return {id:b.id||("b"+(seq++)),order:(b.order==null?idx:b.order),typeId:(b.typeId||null),
           start:clampDay(dateToDay(parseIso(b.s))),end:clampDay(dateToDay(parseIso(b.e))),
@@ -637,31 +664,16 @@
     var L=computeLabor(); if(!L.contrs.length) return;
     var wrap=document.createElement("div"); wrap.className="labor"; wrap.style.width=(DAYS*DAYW)+"px";
     var head=document.createElement("div"); head.className="dhead labhead";
-    var leg='<span>👷 Рабочих в неделю (сред.) по подрядчикам:</span>';
+    var leg='<span>👷 Рабочих в неделю (сред.):</span>';
     L.contrs.forEach(function(c,ci){ leg+=' <span class="legit"><span class="chip" style="background:'+PROFCOL[ci%PROFCOL.length]+'"></span>'+escapeHtml(c)+'</span>'; });
     head.innerHTML='<div class="dlabel lableg">'+leg+'</div>';
     wrap.appendChild(head);
-    L.contrs.forEach(function(c,ci){
-      var row=document.createElement("div"); row.className="labrow";
-      var lab=document.createElement("div"); lab.className="lablabel"; lab.innerHTML='<i style="background:'+PROFCOL[ci%PROFCOL.length]+'"></i>'; row.appendChild(lab);
-      var cells=document.createElement("div"); cells.className="labcells";
-      for(var w=0; w<WEEKS; w++){ var mh=L.weeks[w][c]||0; var n=mh>0?Math.ceil(mh/WORKWEEK):0;
-        var cc=document.createElement("div"); cc.className="labcell"+(n>0?" has":""); cc.textContent=n>0?n:""; if(n>0) cc.style.background=PROFCOL[ci%PROFCOL.length]; cells.appendChild(cc); }
-      row.appendChild(cells); wrap.appendChild(row);
-    });
-    // Итого (сумма людей по всем подрядчикам)
-    var trow=document.createElement("div"); trow.className="labrow labtot";
-    var tlab=document.createElement("div"); tlab.className="lablabel"; tlab.innerHTML='<i class="tot">Σ</i>'; trow.appendChild(tlab);
-    var tcells=document.createElement("div"); tcells.className="labcells";
-    for(var w=0; w<WEEKS; w++){ var sum=0; L.contrs.forEach(function(c){ var mh=L.weeks[w][c]||0; if(mh>0) sum+=Math.ceil(mh/WORKWEEK); });
-      var cc=document.createElement("div"); cc.className="labcell tot"+(sum>0?" has":""); cc.textContent=sum>0?sum:""; tcells.appendChild(cc); }
-    trow.appendChild(tcells); wrap.appendChild(trow);
-    // столбчатая диаграмма потребности (стек по подрядчикам)
+    // недельные суммы
     var totals=[]; var maxT=0;
     for(var w=0; w<WEEKS; w++){ var s=0; L.contrs.forEach(function(c){ var mh=L.weeks[w][c]||0; if(mh>0) s+=Math.ceil(mh/WORKWEEK); }); totals.push(s); if(s>maxT)maxT=s; }
+    // 1) столбчатая диаграмма
     if(maxT>0){
-      var chart=document.createElement("div"); chart.className="labchart";
-      var maxBarH=64;
+      var chart=document.createElement("div"); chart.className="labchart"; var maxBarH=64;
       for(var w=0; w<WEEKS; w++){
         var col=document.createElement("div"); col.className="lccol";
         if(totals[w]>0){
@@ -675,6 +687,21 @@
       }
       chart.style.width=(DAYS*DAYW)+"px"; wrap.appendChild(chart);
     }
+    // 2) лёгкая таблица под диаграммой: цветные цифры на прозрачном фоне
+    L.contrs.forEach(function(c,ci){
+      var row=document.createElement("div"); row.className="labrow";
+      var lab=document.createElement("div"); lab.className="lablabel"; lab.innerHTML='<i style="background:'+PROFCOL[ci%PROFCOL.length]+'"></i>'; row.appendChild(lab);
+      var cells=document.createElement("div"); cells.className="labcells";
+      for(var w=0; w<WEEKS; w++){ var mh=L.weeks[w][c]||0; var n=mh>0?Math.ceil(mh/WORKWEEK):0;
+        var cc=document.createElement("div"); cc.className="labcell"+(n>0?" has":""); cc.textContent=n>0?n:""; if(n>0) cc.style.color=PROFCOL[ci%PROFCOL.length]; cells.appendChild(cc); }
+      row.appendChild(cells); wrap.appendChild(row);
+    });
+    // Итого
+    var trow=document.createElement("div"); trow.className="labrow labtot";
+    var tlab=document.createElement("div"); tlab.className="lablabel"; tlab.innerHTML='<i class="tot">Σ</i>'; trow.appendChild(tlab);
+    var tcells=document.createElement("div"); tcells.className="labcells";
+    for(var w=0; w<WEEKS; w++){ var cc=document.createElement("div"); cc.className="labcell tot"+(totals[w]>0?" has":""); cc.textContent=totals[w]>0?totals[w]:""; tcells.appendChild(cc); }
+    trow.appendChild(tcells); wrap.appendChild(trow);
     groupsEl.appendChild(wrap);
   }
   var ROLLH=14, L1ROWH=24;
@@ -868,6 +895,7 @@
   document.addEventListener("click",function(e){ if(!menu.contains(e.target)&&e.target!==menuBtn) menu.classList.remove("on"); });
   menu.addEventListener("click",function(e){ var act=e.target&&e.target.dataset?e.target.dataset.act:null; if(!act)return; menu.classList.remove("on");
     if(act==="types") openTypeSheet();
+    else if(act==="calc") openCalc();
     else if(act==="kpi") openKpi();
     else if(act==="cashflow") openCashflow();
     else if(act==="spec") openSpecSheet();
@@ -972,7 +1000,18 @@
     Object.keys(newRes).forEach(function(id){ state.elemRes[id]=newRes[id]; });
     return count;
   }
-  var specFile=document.getElementById("specFile");
+  function importDetail(text){
+    var rows=splitCSV(text); if(!rows.length) return 0;
+    var d={}, count=0;
+    rows.forEach(function(r){
+      var cat=(r[0]||"").trim(), nm=(r[2]||"").trim(); if(!cat||!nm) return;
+      var rec={group:(r[1]||"").trim(), name:nm, unit:(r[3]||"").trim(), perCat:num(r[4]), buyUnit:(r[5]||"").trim(), conv:num(r[6]), price:num(r[7])};
+      (d[cat]=d[cat]||[]).push(rec); count++;
+    });
+    Object.keys(d).forEach(function(k){ state.detail[k]=d[k]; });
+    return count;
+  }
+  var specFile=document.getElementById("specFile"), detFile=document.getElementById("detFile");
   function openSpecSheet(){ renderSpecView(); ovl4.classList.add("on"); specSheet.classList.add("on"); }
   function closeSpecSheet(){ ovl4.classList.remove("on"); specSheet.classList.remove("on"); }
   function renderSpecView(){
@@ -985,25 +1024,33 @@
       head.innerHTML='<span class="chip" style="background:'+el.color+'"></span><span>'+escapeHtml(el.short)+' · '+(el.projVol||0)+' '+escapeHtml(el.unit||"")+'</span>'+((!el.projVol)?'<span class="warn">⚠ нет объёма</span>':'');
       v.appendChild(head);
       rs.forEach(function(m){ var r=document.createElement("div"); r.className="svrow";
-        r.innerHTML='<span class="t">['+(m.rtype||"")[0]+'] '+escapeHtml(m.name)+'</span><span class="q">'+(m.total!=null?fmtNum(m.total):"")+" "+escapeHtml(m.unit||"")+'</span>'; v.appendChild(r); });
+        var dc=(state.detail&&state.detail[m.name])?state.detail[m.name].length:0;
+        r.innerHTML='<span class="t">['+(m.rtype||"")[0]+'] '+escapeHtml(m.name)+(dc?' <span style="color:#16A085;font-weight:700">• '+dc+' марок</span>':'')+'</span><span class="q">'+(m.total!=null?fmtNum(m.total):"")+" "+escapeHtml(m.unit||"")+'</span>'; v.appendChild(r); });
     });
   }
   ovl4.addEventListener("click",closeSpecSheet);
   document.getElementById("specCloseBtn").addEventListener("click",closeSpecSheet);
   document.getElementById("specImportBtn").addEventListener("click",function(){ specFile.click(); });
-  document.getElementById("specClearBtn").addEventListener("click",function(){ if(!confirm("Очистить справочник (ресурсы элементов)?"))return; state.elemRes={}; save(); renderSpecView(); render(); toast("Справочник очищен"); });
-  specFile.addEventListener("change",function(){ var file=specFile.files&&specFile.files[0]; if(!file)return;
-    var r=new FileReader();
+  document.getElementById("detImportBtn").addEventListener("click",function(){ detFile.click(); });
+  document.getElementById("specClearBtn").addEventListener("click",function(){ if(!confirm("Очистить справочник (категории и детализацию)?"))return; state.elemRes={}; state.detail={}; save(); renderSpecView(); render(); toast("Справочник очищен"); });
+  function readCsv(file, cb){ var r=new FileReader();
     r.onload=function(){ var buf=r.result, txt="";
       try{ txt=new TextDecoder("utf-8",{fatal:false}).decode(buf); }catch(e){ txt=""; }
       if(/\uFFFD/.test(txt)){ try{ txt=new TextDecoder("windows-1251").decode(buf); }catch(e){} }
-      var n=importSpravochnik(txt);
+      cb(txt);
+    };
+    r.onerror=function(){ toast("Ошибка чтения файла"); }; r.readAsArrayBuffer(file);
+  }
+  specFile.addEventListener("change",function(){ var file=specFile.files&&specFile.files[0]; if(!file)return;
+    readCsv(file,function(txt){ var n=importSpravochnik(txt);
       if(!n){ toast("Не удалось прочитать CSV"); specFile.value=""; return; }
       save(); renderSpecView(); render(); if(editing){ buildTypeChips(); markSelected(); refreshPkg(); }
-      toast("Загружено строк: "+n); specFile.value="";
-    };
-    r.onerror=function(){ toast("Ошибка чтения файла"); specFile.value=""; };
-    r.readAsArrayBuffer(file);
+      toast("Категории: загружено "+n); specFile.value=""; });
+  });
+  detFile.addEventListener("change",function(){ var file=detFile.files&&detFile.files[0]; if(!file)return;
+    readCsv(file,function(txt){ var n=importDetail(txt);
+      if(!n){ toast("Не удалось прочитать CSV детализации"); detFile.value=""; return; }
+      save(); renderSpecView(); toast("Детализация: загружено "+n+" марок"); detFile.value=""; });
   });
 
   // ---- сводка: категории (план) + готовность по элементам ----
@@ -1162,6 +1209,69 @@
     lines.push("ИТОГО;"+Math.round(cf.total)+";");
     try{ var blob=new Blob(["\uFEFF"+lines.join("\r\n")],{type:"text/csv"}); var url=URL.createObjectURL(blob);
       var a=document.createElement("a"); a.href=url; a.download="cashflow-"+cfMode+"-"+iso(today)+".csv"; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){URL.revokeObjectURL(url);},1000); toast("CSV сохранён"); }catch(e){ toast("Не удалось выгрузить"); }
+  });
+
+  // ---- калькулятор закупки (марки + расход на элемент) ----
+  var ovl8=document.getElementById("ovl8"), calcSheet=document.getElementById("calcSheet"), calcEl=document.getElementById("calcEl");
+  function openCalc(){
+    var opts=allTypes().filter(function(t){ return elemRes(t.id).some(function(r){return r.rtype==="Материал";}); });
+    calcEl.innerHTML="";
+    if(!opts.length){ calcEl.innerHTML='<option>Нет элементов — загрузите справочник</option>'; }
+    opts.forEach(function(t){ var o=document.createElement("option"); o.value=t.id; o.textContent=t.short; calcEl.appendChild(o); });
+    calcSetDefaults(); renderCalc(); ovl8.classList.add("on"); calcSheet.classList.add("on");
+  }
+  function calcSetDefaults(){ var t=typeById(calcEl.value); document.getElementById("calcUnit").textContent=t.unit||"ед.";
+    document.getElementById("calcVol").value=(num(t.projVol)||0); }
+  function closeCalc(){ ovl8.classList.remove("on"); calcSheet.classList.remove("on"); }
+  function renderCalc(){
+    var v=document.getElementById("calcView"); v.innerHTML=""; var t=typeById(calcEl.value);
+    if(!t||t.id===undefined){ return; }
+    document.getElementById("calcUnit").textContent=t.unit||"ед.";
+    var PV=num(t.projVol)||0, V=num(document.getElementById("calcVol").value); if(V==null) V=PV;
+    document.getElementById("calcInfo").textContent="Проект: "+(PV||0)+" "+(t.unit||"")+(PV>0&&V!=PV?("  ·  считаем на "+fmtNum(V)+" "+(t.unit||"")):"");
+    var mats=elemRes(t.id).filter(function(r){return r.rtype==="Материал";});
+    if(!mats.length){ v.innerHTML='<div class="empty" style="color:var(--muted);font-size:13px;padding:8px">У элемента нет категорий-материалов.</div>'; return; }
+    var total=0, anyDetail=false;
+    mats.forEach(function(c){
+      var effVol=(num(c.total)||0)*(PV>0?V/PV:0);
+      var head=document.createElement("div"); head.className="svhead";
+      head.innerHTML='<span>'+escapeHtml(c.name)+' · '+fmtNum(effVol)+' '+escapeHtml(c.unit||"")+'</span>';
+      v.appendChild(head);
+      var det=(state.detail&&state.detail[c.name])?state.detail[c.name]:[];
+      if(!det.length){ var e=document.createElement("div"); e.className="svrow"; e.innerHTML='<span class="t" style="color:var(--muted)">детализация не загружена</span><span class="q"></span>'; v.appendChild(e); return; }
+      anyDetail=true;
+      det.forEach(function(d){
+        var rash=(num(d.perCat)||0)*effVol;
+        var conv=num(d.conv)||1; var buy=Math.ceil(rash/conv);
+        var sum=buy*(num(d.price)||0); total+=sum;
+        var row=document.createElement("div"); row.className="calcrow";
+        row.innerHTML='<div class="cmark">'+escapeHtml(d.name)+'</div>'+
+          '<div class="cnums"><span class="crash">'+fmtNum(Math.round(rash*100)/100)+' '+escapeHtml(d.unit||"")+'</span>'+
+          '<span class="cbuy">→ '+buy+' '+escapeHtml(d.buyUnit||"")+'</span>'+
+          '<span class="csum">'+fmtMoney(sum)+' ₽</span></div>';
+        v.appendChild(row);
+      });
+    });
+    if(anyDetail){ var tt=document.createElement("div"); tt.className="sumtot"; tt.style.marginTop="10px";
+      tt.innerHTML='<div>Итого материалы</div><div><b>'+fmtMoney(total)+' ₽</b></div>'; v.appendChild(tt); }
+    else { var note=document.createElement("div"); note.style.cssText="color:var(--muted);font-size:12px;padding:8px 2px"; note.textContent="Загрузите «Детализацию» в справочнике, чтобы увидеть марки и расчёт закупки."; v.appendChild(note); }
+  }
+  calcEl.addEventListener("change",function(){ calcSetDefaults(); renderCalc(); });
+  document.getElementById("calcVol").addEventListener("input",renderCalc);
+  ovl8.addEventListener("click",closeCalc);
+  document.getElementById("calcCloseBtn").addEventListener("click",closeCalc);
+  attachSheetDrag(document.querySelector("#calcSheet .grab"), calcSheet, closeCalc);
+  document.getElementById("calcExportBtn").addEventListener("click",function(){
+    var t=typeById(calcEl.value); if(!t)return; var PV=num(t.projVol)||0, V=num(document.getElementById("calcVol").value); if(V==null)V=PV;
+    var mats=elemRes(t.id).filter(function(r){return r.rtype==="Материал";});
+    var lines=["Элемент;"+t.short+";объём;"+fmtNum(V)+" "+(t.unit||""), "", "Категория;Марка/изделие;Расход;Ед.;К закупке;Ед. закупки;Цена;Сумма, ₽"]; var total=0;
+    mats.forEach(function(c){ var effVol=(num(c.total)||0)*(PV>0?V/PV:0); var det=(state.detail&&state.detail[c.name])||[];
+      det.forEach(function(d){ var rash=(num(d.perCat)||0)*effVol; var buy=Math.ceil(rash/(num(d.conv)||1)); var sum=buy*(num(d.price)||0); total+=sum;
+        lines.push('"'+c.name+'";"'+(d.name||"").replace(/"/g,'""')+'";'+fmtNum(Math.round(rash*100)/100)+";"+(d.unit||"")+";"+buy+";"+(d.buyUnit||"")+";"+(num(d.price)||0)+";"+Math.round(sum)); }); });
+    lines.push(";;;;;;ИТОГО;"+Math.round(total));
+    try{ var blob=new Blob(["\uFEFF"+lines.join("\r\n")],{type:"text/csv"}); var url=URL.createObjectURL(blob);
+      var a=document.createElement("a"); a.href=url; a.download="zakupka-"+t.short.replace(/[^\wа-яА-Я]+/g,"_")+".csv"; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(function(){URL.revokeObjectURL(url);},1000); toast("CSV сохранён"); }catch(e){ toast("Не удалось выгрузить"); }
   });
 
