@@ -72,6 +72,23 @@
   .tabbar button.on{color:#2563eb}
   .fab{position:fixed;right:18px;bottom:calc(64px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;border:none;background:#2563eb;color:#fff;font-size:30px;font-weight:400;box-shadow:0 6px 18px rgba(37,99,235,.45);z-index:40}
   .gtitle{font-size:16px;font-weight:750;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .projtop{padding:18px 16px 8px}
+  .projtop h1{font-size:28px;font-weight:800;text-align:center;margin:0}
+  .projlist{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 14px calc(20px + env(safe-area-inset-bottom))}
+  .pcard{position:relative;background:var(--panel);border:1px solid var(--grid);border-radius:16px;box-shadow:var(--shadow);padding:16px 16px 14px;margin-bottom:14px;cursor:pointer;overflow:hidden}
+  .pcard.cur{border-color:#2563eb}
+  .pcard.cur::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:#2563eb}
+  .pcard h3{font-size:20px;font-weight:800;margin:0 0 2px}
+  .pcard .ploc{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:12px}
+  .pcard .pmeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-top:1px solid var(--grid);padding-top:11px;font-size:14px;font-weight:600;color:var(--ink)}
+  .pcard .pmeta .dot{color:var(--grid-strong)}
+  .pcard .pmeta b{color:#2563eb;font-weight:800}
+  .pcard .pwx{display:inline-flex;align-items:center;gap:4px}
+  .pcard .pedit{position:absolute;right:10px;top:12px;border:none;background:none;color:var(--muted);font-size:18px;padding:6px}
+  .paddcard{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:2px dashed var(--grid-strong);border-radius:16px;padding:22px;color:var(--muted);font-weight:700;cursor:pointer}
+  .paddcard .plus{font-size:30px;color:#2563eb;line-height:1}
+  .htitle{position:relative}
+  .toproj{border:none;background:none;color:#2563eb;font-size:13px;font-weight:700;padding:0 0 2px;cursor:pointer}
   .top{display:flex;flex-direction:column;gap:3px;padding:8px 12px;background:var(--panel);
     border-bottom:1px solid var(--grid);z-index:20}
   .toprow{display:flex;align-items:center;gap:8px}
@@ -276,10 +293,16 @@
 </head>
 <body>
 <div class="wrap">
+  <!-- МОИ ПРОЕКТЫ -->
+  <div class="screen on" id="scrProjects">
+    <div class="projtop"><h1>Мои проекты</h1></div>
+    <div class="projlist" id="projList"></div>
+  </div>
+
   <!-- ОБЗОР -->
-  <div class="screen on" id="scrHome">
+  <div class="screen" id="scrHome">
     <div class="hometop">
-      <div class="htitle"><h1>Блок Б</h1><div class="loc">пос. Тургояк, Миасс</div></div>
+      <div class="htitle"><button class="toproj" id="toProjBtn">‹ Мои проекты</button><h1 id="homeTitle">Блок Б</h1><div class="loc" id="homeLoc">пос. Тургояк, Миасс</div></div>
       <div class="wxbig" id="wxBig">…</div>
     </div>
     <div class="dash" id="dash"></div>
@@ -317,6 +340,7 @@
 
 <div class="menu" id="menu">
   <button data-act="types">Элементы</button>
+  <button data-act="projects">🏗 Мои проекты</button>
   <button data-act="calc">🧮 Калькулятор закупки</button>
   <button data-act="spec">Справочник (импорт)</button>
   <button data-act="kpi">📊 Показатели (готовность · бюджет)</button>
@@ -466,6 +490,21 @@
   </div>
 </div>
 
+<div class="ovl" id="ovl9"></div>
+<div class="sheet" id="projSheet">
+  <div class="grab"></div>
+  <h2 id="projSheetTitle">Новый проект</h2>
+  <div class="fields">
+    <div class="field"><label>Название</label><input id="npName" placeholder="напр. Блок В"></div>
+    <div class="field"><label>Местоположение</label><input id="npLoc" placeholder="напр. пос. Тургояк, Миасс"></div>
+  </div>
+  <div class="row">
+    <button class="btn primary" id="npCreate" style="flex:1">Создать</button>
+    <button class="btn" id="npCancel" style="flex:1">Отмена</button>
+  </div>
+  <button class="btn danger" id="npDelete" style="width:100%;margin-top:8px;display:none">Удалить проект</button>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -474,7 +513,22 @@
   var WEEKS=53, DAYS=WEEKS*7;
   var ZOOMS=[5,8,12,18], zi=2;
   var DAYW=ZOOMS[zi], WEEKW=DAYW*7, ROWH=36, BARH=28, GHEAD=24, HEADERH=46;
-  var STORE_KEY="gantt_board_v1";
+  // ---- проекты ----
+  var projects=[], curId=null;
+  function curProj(){ for(var i=0;i<projects.length;i++) if(projects[i].id===curId) return projects[i]; return projects[0]||null; }
+  function boardKey(){ var p=curProj(); return p?p.key:"gantt_board_v1"; }
+  function persistProjects(){ var s=JSON.stringify({projects:projects,cur:curId}); lsSet("gantt_projects",s); if(hasWinStore()){ try{ window.storage.set("gantt_projects",s,false); }catch(e){} } }
+  function loadProjects(cb){
+    function done(raw){ var o=null; try{ o=JSON.parse(raw); }catch(e){}
+      if(o&&o.projects&&o.projects.length){ projects=o.projects; curId=o.cur||projects[0].id; }
+      else { projects=[{id:"__default",name:"Блок Б",loc:"пос. Тургояк, Миасс",lat:55.147,lng:60.138,key:"gantt_board_v1",stats:{},wx:""}]; curId="__default"; persistProjects(); }
+      cb();
+    }
+    if(hasWinStore()){ var d=false,g=setTimeout(function(){if(d)return;d=true;done(lsGet("gantt_projects"));},1200);
+      try{ Promise.resolve(window.storage.get("gantt_projects",false)).then(function(res){ if(d)return;d=true;clearTimeout(g); done(res&&res.value?res.value:lsGet("gantt_projects")); }).catch(function(){ if(d)return;d=true;clearTimeout(g);done(lsGet("gantt_projects")); }); }catch(e){ if(!d){d=true;clearTimeout(g);done(lsGet("gantt_projects")); } }
+    } else done(lsGet("gantt_projects"));
+  }
+  function resetState(){ state={bars:[], types:[], elemRes:{}, detail:{}}; }
 
   var DISCIPLINES=["Общестроительные работы","Архитектура","Трубопроводы","Электрика","Механика"];
   // Элемент: {id, short(имя), color, ink, disc(дисциплина), unit(ед.изм.), projVol(проектный объём)}
@@ -613,29 +667,30 @@
   function lsSet(k,v){ try{ if(window.localStorage){ window.localStorage.setItem(k,v); return true; } }catch(e){} return false; }
 
   var saveTimer=null;
+  function updateProjStats(){ var p=curProj(); if(!p) return; try{ p.stats={budget:objBudget(), pct:readiness().objPct}; }catch(e){} }
   function save(){
-    var data=serialize();
-    lsSet(STORE_KEY,data);          // на телефон — сразу, чтобы ничего не терялось
+    var data=serialize(); var k=boardKey();
+    lsSet(k,data);
+    updateProjStats(); lsSet("gantt_projects",JSON.stringify({projects:projects,cur:curId}));
     flashSaved();
-    if(hasWinStore()){              // в хранилище Claude — с задержкой, чтобы не частить
-      if(saveTimer) clearTimeout(saveTimer);
-      saveTimer=setTimeout(function(){ try{ window.storage.set(STORE_KEY,serialize(),false); }catch(e){} },250);
-    }
-  }
-  function load(cb){
-    function finish(raw){ if(!(raw&&hydrate(raw))) state.bars=defaultBars(); cb(); }
     if(hasWinStore()){
-      var done=false, guard=setTimeout(function(){ if(done)return; done=true; finish(lsGet(STORE_KEY)); },1200);
-      try{
-        Promise.resolve(window.storage.get(STORE_KEY,false)).then(function(res){
-          if(done)return; done=true; clearTimeout(guard);
-          finish(res&&res.value ? res.value : lsGet(STORE_KEY));
-        }).catch(function(){ if(done)return; done=true; clearTimeout(guard); finish(lsGet(STORE_KEY)); });
-      }catch(e){ if(!done){ done=true; clearTimeout(guard); finish(lsGet(STORE_KEY)); } }
-    } else {
-      finish(lsGet(STORE_KEY));
+      if(saveTimer) clearTimeout(saveTimer);
+      saveTimer=setTimeout(function(){ try{ window.storage.set(k,serialize(),false); window.storage.set("gantt_projects",JSON.stringify({projects:projects,cur:curId}),false); }catch(e){} },250);
     }
   }
+  function loadKey(key, cb){
+    function finish(raw){ resetState(); if(!(raw&&hydrate(raw))) state.bars=defaultBars(); cb(); }
+    if(hasWinStore()){
+      var done=false, guard=setTimeout(function(){ if(done)return; done=true; finish(lsGet(key)); },1200);
+      try{
+        Promise.resolve(window.storage.get(key,false)).then(function(res){
+          if(done)return; done=true; clearTimeout(guard);
+          finish(res&&res.value ? res.value : lsGet(key));
+        }).catch(function(){ if(done)return; done=true; clearTimeout(guard); finish(lsGet(key)); });
+      }catch(e){ if(!done){ done=true; clearTimeout(guard); finish(lsGet(key)); } }
+    } else { finish(lsGet(key)); }
+  }
+  function load(cb){ loadKey(boardKey(), cb); }
 
   var statusEl, statusT=null;
   function flashSaved(){ if(!statusEl)return; statusEl.classList.add("on"); if(statusT)clearTimeout(statusT);
@@ -990,6 +1045,7 @@
   document.addEventListener("click",function(e){ if(menu.classList.contains("on") && !menu.contains(e.target) && !e.target.closest('[data-tab="more"]')) menu.classList.remove("on"); });
   menu.addEventListener("click",function(e){ var act=e.target&&e.target.dataset?e.target.dataset.act:null; if(!act)return; menu.classList.remove("on");
     if(act==="types") openTypeSheet();
+    else if(act==="projects") showProjects();
     else if(act==="calc") openCalc();
     else if(act==="kpi") openKpi();
     else if(act==="cashflow") openCashflow();
@@ -1406,23 +1462,87 @@
   }
   function tsign(t){ t=Math.round(t); return (t>0?"+":"")+t+"°"; }
   function loadWeather(){
-    var elw=document.getElementById("wxBig"); if(!elw) return;
-    var url="https://api.open-meteo.com/v1/forecast?latitude=55.147&longitude=60.138&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=2";
+    var elw=document.getElementById("wxBig"); var p=curProj();
+    if(!p || p.lat==null || p.lng==null){ if(elw) elw.innerHTML=""; return; }
+    var url="https://api.open-meteo.com/v1/forecast?latitude="+p.lat+"&longitude="+p.lng+"&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=2";
     fetch(url).then(function(r){ return r.json(); }).then(function(d){
       var cur=d.current||{}, day=d.daily||{};
       var nowT=cur.temperature_2m, nowC=cur.weather_code;
       var tmaxArr=day.temperature_2m_max||[], wcArr=day.weather_code||[];
       var tom=(tmaxArr.length>1)?("завтра "+wxIcon(wcArr[1])+" "+tsign(tmaxArr[1])):"";
-      elw.innerHTML='<span class="wi">'+(nowC!=null?wxIcon(nowC):"·")+'</span><span><span class="wt">'+(nowT!=null?tsign(nowT):"—")+'</span><span class="wsub">'+tom+'</span></span>';
-      elw.title="пос. Тургояк · сегодня "+(nowC!=null?wxWord(nowC):"");
-    }).catch(function(){ elw.innerHTML='<span class="wsub">погода недоступна</span>'; });
+      if(elw) elw.innerHTML='<span class="wi">'+(nowC!=null?wxIcon(nowC):"·")+'</span><span><span class="wt">'+(nowT!=null?tsign(nowT):"—")+'</span><span class="wsub">'+tom+'</span></span>';
+      p.wx=(nowC!=null?wxIcon(nowC):"")+" "+(nowT!=null?tsign(nowT):""); persistProjects();
+    }).catch(function(){ if(elw) elw.innerHTML='<span class="wsub">погода недоступна</span>'; });
   }
 
   // ---- init ----
+  // проекты
+  function applyProjHeader(){ var p=curProj(); if(!p)return;
+    var ht=document.getElementById("homeTitle"), hl=document.getElementById("homeLoc"), gt=document.querySelector(".gtitle");
+    if(ht) ht.textContent=p.name; if(hl) hl.textContent=p.loc||""; if(gt) gt.textContent=p.name+" — График";
+  }
+  function fmtShortMoney2(n){ n=n||0; if(n>=1e6) return (Math.round(n/1e5)/10)+" млн ₽"; if(n>=1e3) return Math.round(n/1e3)+" тыс ₽"; return Math.round(n)+" ₽"; }
+  function renderProjects(){
+    var box=document.getElementById("projList"); if(!box)return; box.innerHTML="";
+    projects.forEach(function(p){
+      var c=document.createElement("div"); c.className="pcard"+(p.id===curId?" cur":"");
+      var st=p.stats||{}; var pct=(st.pct!=null)?(fmtPct(st.pct)+" %"):"—";
+      var bud=(st.budget!=null)?fmtShortMoney2(st.budget):"—";
+      var wx=p.wx?('<span class="pwx">'+p.wx+'</span> <span class="dot">•</span> '):'';
+      c.innerHTML='<button class="pedit" data-edit="'+p.id+'">✎</button>'+
+        '<h3>'+escapeHtml(p.name)+'</h3><div class="ploc">'+escapeHtml(p.loc||"")+'</div>'+
+        '<div class="pmeta">'+wx+'<b>'+pct+'</b> готовность <span class="dot">•</span> '+bud+'</div>';
+      c.addEventListener("click",function(e){ if(e.target&&e.target.dataset&&e.target.dataset.edit){ openProjSheet(p.id); return; } openProject(p.id); });
+      box.appendChild(c);
+    });
+    var add=document.createElement("div"); add.className="paddcard"; add.innerHTML='<span class="plus">+</span>Новый проект';
+    add.addEventListener("click",function(){ openProjSheet(null); });
+    box.appendChild(add);
+  }
+  function openProject(id){
+    if(id!==curId){ curId=id; persistProjects(); }
+    loadKey(boardKey(), function(){ applyProjHeader(); render(); renderDash(); loadWeather(); showScreen("home"); });
+  }
+  function showProjects(){ if(curId) save(); renderProjects(); ["scrHome","scrGantt"].forEach(function(x){document.getElementById(x).classList.remove("on");}); document.getElementById("scrProjects").classList.add("on"); document.getElementById("tabbar").style.display="none"; document.getElementById("fab").style.display="none"; menu.classList.remove("on"); }
+  var editingProjId=null;
+  function openProjSheet(id){ editingProjId=id;
+    var p=id?projects.filter(function(x){return x.id===id;})[0]:null;
+    document.getElementById("projSheetTitle").textContent=p?"Проект":"Новый проект";
+    document.getElementById("npName").value=p?p.name:""; document.getElementById("npLoc").value=p?(p.loc||""):"";
+    document.getElementById("npDelete").style.display=(p&&projects.length>1)?"block":"none";
+    document.getElementById("ovl9").classList.add("on"); document.getElementById("projSheet").classList.add("on");
+  }
+  function closeProjSheet(){ document.getElementById("ovl9").classList.remove("on"); document.getElementById("projSheet").classList.remove("on"); }
+  document.getElementById("ovl9").addEventListener("click",closeProjSheet);
+  document.getElementById("npCancel").addEventListener("click",closeProjSheet);
+  document.getElementById("npCreate").addEventListener("click",function(){
+    var name=document.getElementById("npName").value.trim(); if(!name){ toast("Введите название"); return; }
+    var loc=document.getElementById("npLoc").value.trim();
+    if(editingProjId){ var p=projects.filter(function(x){return x.id===editingProjId;})[0]; if(p){ p.name=name; p.loc=loc; } persistProjects(); closeProjSheet(); if(editingProjId===curId) applyProjHeader(); renderProjects(); return; }
+    if(curId) save();
+    var id="p"+Date.now(); var proj={id:id,name:name,loc:loc,lat:null,lng:null,key:"gantt_board_"+id,stats:{},wx:""};
+    projects.push(proj); curId=id; persistProjects();
+    resetState(); state.bars=defaultBars(); save(); applyProjHeader(); render(); renderDash();
+    closeProjSheet(); showScreen("home"); toast("Проект создан: "+name);
+  });
+  document.getElementById("npDelete").addEventListener("click",function(){
+    if(!editingProjId||projects.length<2) return;
+    if(!confirm("Удалить проект и все его данные?")) return;
+    var p=projects.filter(function(x){return x.id===editingProjId;})[0];
+    if(p){ try{ if(window.localStorage) window.localStorage.removeItem(p.key); }catch(e){} if(hasWinStore()){ try{ window.storage.delete(p.key,false); }catch(e){} } }
+    projects=projects.filter(function(x){return x.id!==editingProjId;});
+    if(curId===editingProjId) curId=projects[0].id;
+    persistProjects(); closeProjSheet(); showProjects();
+  });
+  attachSheetDrag(document.querySelector("#projSheet .grab"), document.getElementById("projSheet"), closeProjSheet);
+  document.getElementById("toProjBtn").addEventListener("click",showProjects);
   // экраны и навигация
   function showScreen(name){
+    document.getElementById("scrProjects").classList.remove("on");
     document.getElementById("scrHome").classList.toggle("on", name==="home");
     document.getElementById("scrGantt").classList.toggle("on", name==="gantt");
+    document.getElementById("tabbar").style.display="";
+    document.getElementById("fab").style.display="";
     Array.prototype.forEach.call(document.querySelectorAll('.tabbar button'),function(b){ b.classList.toggle("on", b.dataset.tab===(name==="gantt"?"gantt":"home")); });
     if(name==="home") renderDash();
     if(name==="gantt"){ var sc=document.getElementById("scroll"); if(!sc._centered){ sc.scrollLeft=Math.max(0,todayDay*DAYW - sc.clientWidth/2); sc._centered=1; } }
@@ -1503,14 +1623,16 @@
   try{ var zsaved=parseInt(lsGet("gantt_zoom")); if(!isNaN(zsaved)&&zsaved>=0&&zsaved<ZOOMS.length){ zi=zsaved; DAYW=ZOOMS[zi]; WEEKW=DAYW*7; } }catch(e){}
   applyZoomVars();
   buildHeader();
-  load(function(){
-    render(); renderDash();
-    var sc=document.getElementById("scroll"); sc.scrollLeft=Math.max(0,todayDay*DAYW - sc.clientWidth/2); sc._centered=1;
-    setTimeout(function(){ toast("Загрузи справочник: «Ещё» → Справочник (импорт)."); },500);
+  loadProjects(function(){
+    applyProjHeader();
+    load(function(){
+      render(); renderDash(); renderProjects();
+      var sc=document.getElementById("scroll"); sc.scrollLeft=Math.max(0,todayDay*DAYW - sc.clientWidth/2); sc._centered=1;
+      loadWeather();
+      document.getElementById("tabbar").style.display="none"; document.getElementById("fab").style.display="none";
+    });
   });
-  showScreen("home");
   window.addEventListener("resize",render);
-  loadWeather();
   function refreshToday(){
     var t=startOfDay(new Date()); if(+t===+today) return;
     today=t; todayDay=dateToDay(t);
