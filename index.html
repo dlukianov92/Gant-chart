@@ -26,6 +26,52 @@
     -webkit-font-smoothing:antialiased;overscroll-behavior:none}
   .wrap{display:flex;flex-direction:column;height:100dvh}
 
+  .wrap{display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+  .screen{flex:1;min-height:0;display:none;flex-direction:column;overflow:hidden}
+  .screen.on{display:flex}
+  .hometop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:14px 16px 6px}
+  .hometop h1{font-size:26px;font-weight:800;margin:0;letter-spacing:.2px}
+  .hometop .loc{font-size:12px;color:var(--muted);font-weight:600;margin-top:2px}
+  .wxbig{display:flex;align-items:center;gap:8px;text-align:right;flex:0 0 auto}
+  .wxbig .wt{font-size:22px;font-weight:800;line-height:1.05;display:block}
+  .wxbig .wsub{font-size:11px;color:var(--muted);font-weight:600;display:block}
+  .wxbig .wi{font-size:26px;line-height:1}
+  .dash{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 12px 92px}
+  .kpigrid{display:flex;gap:10px;margin-bottom:12px}
+  .kpicard{flex:1;background:var(--panel);border:1px solid var(--grid);border-radius:16px;padding:12px 12px 14px;box-shadow:var(--shadow);cursor:pointer}
+  .kpicard .kt{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:6px}
+  .kpicard .kv{font-size:20px;font-weight:800;line-height:1.05}
+  .kpicard .ku{font-size:12px;font-weight:700;color:var(--muted)}
+  .widget{background:var(--panel);border:1px solid var(--grid);border-radius:16px;box-shadow:var(--shadow);padding:14px;margin-bottom:12px;cursor:pointer}
+  .widget .wh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .widget .wh b{font-size:15px;font-weight:750}
+  .widget .wh .chev{color:var(--muted);font-weight:800}
+  .mgrow{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .mglab{flex:0 0 40%;min-width:0}
+  .mglab .n{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
+  .mglab .n i{width:10px;height:10px;border-radius:3px;flex:0 0 auto;display:inline-block}
+  .mglab .s{font-size:11px;color:var(--muted);font-weight:600;margin-left:16px}
+  .mgtrack{position:relative;flex:1;height:20px;background:var(--grid);border-radius:6px;overflow:hidden}
+  .mgbar{position:absolute;top:0;bottom:0;border-radius:6px;opacity:.35}
+  .mgbar .f{position:absolute;left:0;top:0;bottom:0;border-radius:6px 0 0 6px;opacity:1}
+  .mgtoday{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--today);z-index:3}
+  .mgticks{position:relative;height:14px;margin:2px 0 6px 40%}
+  .mgtick{position:absolute;font-size:9px;color:var(--muted);font-weight:600;transform:translateX(-50%)}
+  .mchart{display:flex;align-items:flex-end;gap:6px;height:96px;padding-top:14px}
+  .mccol{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+  .mcnum{font-size:11px;font-weight:800;margin-bottom:2px}
+  .mcbar{width:70%;max-width:22px;display:flex;flex-direction:column;border-radius:4px 4px 0 0;overflow:hidden}
+  .mcseg{width:100%}
+  .mcx{font-size:9px;color:var(--muted);font-weight:600;margin-top:3px}
+  .wlegend{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
+  .wlegend span{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--ink)}
+  .wlegend i{width:10px;height:10px;border-radius:50%;display:inline-block}
+  .tabbar{flex:0 0 auto;display:flex;background:var(--panel);border-top:1px solid var(--grid-strong);padding-bottom:env(safe-area-inset-bottom)}
+  .tabbar button{flex:1;border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 6px;font-size:10px;font-weight:700;color:var(--muted)}
+  .tabbar button .ic{font-size:19px;line-height:1}
+  .tabbar button.on{color:#2563eb}
+  .fab{position:fixed;right:18px;bottom:calc(64px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;border:none;background:#2563eb;color:#fff;font-size:30px;font-weight:400;box-shadow:0 6px 18px rgba(37,99,235,.45);z-index:40}
+  .gtitle{font-size:16px;font-weight:750;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .top{display:flex;flex-direction:column;gap:3px;padding:8px 12px;background:var(--panel);
     border-bottom:1px solid var(--grid);z-index:20}
   .toprow{display:flex;align-items:center;gap:8px}
@@ -42,11 +88,11 @@
   .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
   .btn.ghost{border:none;color:var(--muted);padding:7px 10px;font-size:18px;line-height:1}
 
-  .menu{position:fixed;top:52px;right:10px;z-index:45;background:#fff;border:1px solid var(--grid-strong);
-    border-radius:12px;box-shadow:var(--shadow);padding:6px;display:none;min-width:220px}
+  .menu{position:fixed;left:10px;right:10px;bottom:calc(58px + env(safe-area-inset-bottom));z-index:45;background:#fff;border:1px solid var(--grid-strong);
+    border-radius:16px;box-shadow:0 -6px 24px rgba(0,0,0,.16);padding:6px;display:none;max-height:70vh;overflow:auto}
   .menu.on{display:block}
-  .menu button{display:block;width:100%;text-align:left;background:none;border:none;padding:12px 12px;
-    font-size:14px;font-weight:600;color:var(--ink);border-radius:8px;cursor:pointer}
+  .menu button{display:block;width:100%;text-align:left;background:none;border:none;padding:13px 14px;
+    font-size:15px;font-weight:600;color:var(--ink);border-radius:10px;cursor:pointer}
   .menu button:active{background:var(--grid)}
   .menu button.danger{color:#c0392b}
   .menu .sep{height:1px;background:var(--grid);margin:4px 6px}
@@ -230,25 +276,43 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="top">
-    <div class="toprow">
-      <h1>Блок Б</h1>
-      <span class="status" id="status">Сохранено</span>
-      <button class="btn ghost" id="viewBtn" aria-label="Уровень">L2</button>
-      <button class="btn ghost" id="zoomBtn" aria-label="Масштаб">⇔</button>
-      <button class="btn" id="addBtn" aria-label="Добавить полосу">+</button>
-      <button class="btn ghost" id="menuBtn" aria-label="Меню">&#8943;</button>
+  <!-- ОБЗОР -->
+  <div class="screen on" id="scrHome">
+    <div class="hometop">
+      <div class="htitle"><h1>Блок Б</h1><div class="loc">пос. Тургояк, Миасс</div></div>
+      <div class="wxbig" id="wxBig">…</div>
     </div>
-    <div class="subline"><span class="loc">пос. Тургояк, Миасс</span><span class="wx" id="wx">погода…</span></div>
+    <div class="dash" id="dash"></div>
   </div>
-  <div class="scroll" id="scroll">
-    <div class="canvas" id="canvas">
-      <div class="header" id="header"></div>
-      <div class="bands" id="bands"></div>
-      <div class="today" id="today"></div>
-      <div class="groups" id="groups"></div>
+
+  <!-- ГРАФИК -->
+  <div class="screen" id="scrGantt">
+    <div class="top">
+      <div class="toprow">
+        <button class="btn ghost" id="backBtn" aria-label="Назад">←</button>
+        <h1 class="gtitle">График</h1>
+        <span class="status" id="status">Сохранено</span>
+        <button class="btn ghost" id="viewBtn" aria-label="Уровень">L2</button>
+        <button class="btn ghost" id="zoomBtn" aria-label="Масштаб">⇔</button>
+      </div>
+    </div>
+    <div class="scroll" id="scroll">
+      <div class="canvas" id="canvas">
+        <div class="header" id="header"></div>
+        <div class="bands" id="bands"></div>
+        <div class="today" id="today"></div>
+        <div class="groups" id="groups"></div>
+      </div>
     </div>
   </div>
+
+  <div class="tabbar" id="tabbar">
+    <button data-tab="home" class="on"><span class="ic">🏢</span>Объект</button>
+    <button data-tab="gantt"><span class="ic">📅</span>График</button>
+    <button data-tab="tasks"><span class="ic">✓</span>Задачи</button>
+    <button data-tab="more"><span class="ic">⋯</span>Ещё</button>
+  </div>
+  <button class="fab" id="fab" aria-label="Добавить пакет">+</button>
 </div>
 
 <div class="menu" id="menu">
@@ -417,6 +481,10 @@
   var BUILTIN=[];  // встроенные элементы убраны — только из справочника
   var NONE={id:null, short:"Без вида", color:"#9aa0a6", ink:"#fff", disc:"", unit:"", projVol:0};
   var PALETTE=["#8E44AD","#2980B9","#16A085","#27AE60","#F39C12","#E74C3C","#D81B60","#00838F","#5D4037","#546E7A"];
+  var DPAL=["#8E44AD","#2980B9","#27AE60","#E67E22","#C0392B","#16A085","#D81B60","#00838F","#7F8C8D","#F39C12","#2C3E50","#6D4C41"];
+  var DISC_ORDER=DISCIPLINES.slice();
+  function discColor(disc){ disc=(disc||"").trim(); if(!disc||disc==="Без дисциплины") return "#9aa0a6";
+    var i=DISC_ORDER.indexOf(disc); if(i<0){ DISC_ORDER.push(disc); i=DISC_ORDER.length-1; } return DPAL[i%DPAL.length]; }
   function inkFor(hex){ var c=(hex||"#888").replace("#",""); if(c.length===3)c=c.split("").map(function(x){return x+x;}).join("");
     var r=parseInt(c.substr(0,2),16),g=parseInt(c.substr(2,2),16),b=parseInt(c.substr(4,2),16);
     return (0.2126*r+0.7152*g+0.0722*b)/255 > 0.62 ? "#1b2430" : "#ffffff"; }
@@ -523,7 +591,7 @@
   }
   function hydrate(raw){
     try{ var o=JSON.parse(raw); if(!o||!o.bars||!o.bars.length) return false;
-      state.types=(o.types||[]).map(function(t){ return {id:t.id, short:t.short||t.name||"Элемент", color:t.color||"#888", ink:inkFor(t.color||"#888"), disc:t.disc||"", unit:t.unit||"", projVol:(t.projVol!=null?t.projVol:0)}; });
+      state.types=(o.types||[]).map(function(t){ var col=discColor(t.disc||""); return {id:t.id, short:t.short||t.name||"Элемент", color:col, ink:inkFor(col), disc:t.disc||"", unit:t.unit||"", projVol:(t.projVol!=null?t.projVol:0)}; });
       var tmx=0; state.types.forEach(function(t){ var n=parseInt((t.id||"u0").replace(/\D/g,""))||0; if(n>tmx)tmx=n; }); typeSeq=tmx+1;
       state.elemRes=o.elemRes||{}; state.detail=o.detail||{};
       state.bars=o.bars.map(function(b,idx){
@@ -875,7 +943,8 @@
   document.getElementById("typeCloseBtn").addEventListener("click",closeTypeSheet);
   document.getElementById("addTypeBtn").addEventListener("click",function(){
     var name=tName.value.trim(); if(!name){ toast("Введите имя элемента"); return; }
-    var t={id:"u"+(typeSeq++), short:name, color:selColor, ink:inkFor(selColor), disc:(tDisc.value||DISCIPLINES[0]), unit:(tUnit.value.trim()||"ед."), projVol:(num(tVol.value)||0)};
+    var dcol=discColor(tDisc.value||DISCIPLINES[0]);
+    var t={id:"u"+(typeSeq++), short:name, color:dcol, ink:inkFor(dcol), disc:(tDisc.value||DISCIPLINES[0]), unit:(tUnit.value.trim()||"ед."), projVol:(num(tVol.value)||0)};
     state.types.push(t); save(); tName.value=""; tUnit.value=""; tVol.value=""; renderTypeList();
     if(editing && sheet.classList.contains("on")){ editing.typeId=t.id; editing.resOv={}; render(); buildElemSelectors(); refreshPkg(); closeTypeSheet(); }
     else { render(); }
@@ -883,11 +952,12 @@
   });
 
   // ---- add ----
-  document.getElementById("addBtn").addEventListener("click",function(){
+  function addPackage(){
     var mx=state.bars.reduce(function(m,b){return Math.max(m,b.order);},-1);
     var nb={id:"b"+(seq++),order:mx+1,typeId:null,start:clampDay(todayDay),end:clampDay(todayDay+5),note:"",contr:"",pkgVol:"",fact:"",resOv:{},mats:[]};
-    state.bars.push(nb); save(); render(); openEditor(nb);
-  });
+    state.bars.push(nb); showScreen("gantt"); save(); render(); openEditor(nb);
+  }
+  document.getElementById("fab").addEventListener("click",addPackage);
 
   document.getElementById("zoomBtn").addEventListener("click",function(){ setZoom(zi-1); });
   var viewBtn=document.getElementById("viewBtn"); viewBtn.textContent=viewMode;
@@ -915,9 +985,9 @@
   attachSheetDrag(document.querySelector("#sumSheet .grab"), sumSheet, closeSummary);
 
   // ---- menu / export / import / reset ----
-  var menu=document.getElementById("menu"), menuBtn=document.getElementById("menuBtn"), importFile=document.getElementById("importFile");
-  menuBtn.addEventListener("click",function(e){ e.stopPropagation(); menu.classList.toggle("on"); });
-  document.addEventListener("click",function(e){ if(!menu.contains(e.target)&&e.target!==menuBtn) menu.classList.remove("on"); });
+  var menu=document.getElementById("menu"), importFile=document.getElementById("importFile");
+  function toggleMenu(){ menu.classList.toggle("on"); }
+  document.addEventListener("click",function(e){ if(menu.classList.contains("on") && !menu.contains(e.target) && !e.target.closest('[data-tab="more"]')) menu.classList.remove("on"); });
   menu.addEventListener("click",function(e){ var act=e.target&&e.target.dataset?e.target.dataset.act:null; if(!act)return; menu.classList.remove("on");
     if(act==="types") openTypeSheet();
     else if(act==="calc") openCalc();
@@ -1015,9 +1085,9 @@
       var name=(r[1]||"").trim(); if(!name) return;
       var disc=(r[0]||"").trim(), unit=(r[2]||"").trim(), pv=num(r[3]);
       var el=elemByName(name);
-      if(!el){ el={id:"u"+(typeSeq++), short:name, color:PALETTE[palIdx++ % PALETTE.length], disc:disc, unit:unit||"ед.", projVol:(pv||0)};
+      if(!el){ el={id:"u"+(typeSeq++), short:name, color:discColor(disc), disc:disc, unit:unit||"ед.", projVol:(pv||0)};
         el.ink=inkFor(el.color); state.types.push(el); }
-      else { if(disc)el.disc=disc; if(unit)el.unit=unit; if(pv!=null)el.projVol=pv; }
+      else { if(disc){el.disc=disc; el.color=discColor(disc); el.ink=inkFor(el.color);} if(unit)el.unit=unit; if(pv!=null)el.projVol=pv; }
       var cat={rtype:(r[4]||"Материал").trim(), name:(r[5]||"").trim(), unit:(r[6]||"").trim(), total:num(r[7]), chh:num(r[8]), price:num(r[9]), prof:(r[10]||"").trim()};
       if(!cat.name) return;
       (newRes[el.id]=newRes[el.id]||[]).push(cat); count++;
@@ -1336,30 +1406,109 @@
   }
   function tsign(t){ t=Math.round(t); return (t>0?"+":"")+t+"°"; }
   function loadWeather(){
-    var elw=document.getElementById("wx"); if(!elw) return;
+    var elw=document.getElementById("wxBig"); if(!elw) return;
     var url="https://api.open-meteo.com/v1/forecast?latitude=55.147&longitude=60.138&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=2";
     fetch(url).then(function(r){ return r.json(); }).then(function(d){
       var cur=d.current||{}, day=d.daily||{};
       var nowT=cur.temperature_2m, nowC=cur.weather_code;
-      var tmaxArr=day.temperature_2m_max||[], tminArr=day.temperature_2m_min||[], wcArr=day.weather_code||[];
-      var todS=(nowC!=null?wxIcon(nowC):"")+" <b>"+(nowT!=null?tsign(nowT):"—")+"</b>";
-      var tomS="";
-      if(tmaxArr.length>1){ tomS=" · зав "+wxIcon(wcArr[1])+" <b>"+tsign(tmaxArr[1])+"</b>"; }
-      elw.innerHTML="сег "+todS+tomS;
-      elw.title="пос. Тургояк · сегодня "+(nowC!=null?wxWord(nowC):"")+(wcArr.length>1?(", завтра "+wxWord(wcArr[1])):"");
-    }).catch(function(){ elw.textContent="погода недоступна"; });
+      var tmaxArr=day.temperature_2m_max||[], wcArr=day.weather_code||[];
+      var tom=(tmaxArr.length>1)?("завтра "+wxIcon(wcArr[1])+" "+tsign(tmaxArr[1])):"";
+      elw.innerHTML='<span class="wi">'+(nowC!=null?wxIcon(nowC):"·")+'</span><span><span class="wt">'+(nowT!=null?tsign(nowT):"—")+'</span><span class="wsub">'+tom+'</span></span>';
+      elw.title="пос. Тургояк · сегодня "+(nowC!=null?wxWord(nowC):"");
+    }).catch(function(){ elw.innerHTML='<span class="wsub">погода недоступна</span>'; });
   }
 
   // ---- init ----
+  // экраны и навигация
+  function showScreen(name){
+    document.getElementById("scrHome").classList.toggle("on", name==="home");
+    document.getElementById("scrGantt").classList.toggle("on", name==="gantt");
+    Array.prototype.forEach.call(document.querySelectorAll('.tabbar button'),function(b){ b.classList.toggle("on", b.dataset.tab===(name==="gantt"?"gantt":"home")); });
+    if(name==="home") renderDash();
+    if(name==="gantt"){ var sc=document.getElementById("scroll"); if(!sc._centered){ sc.scrollLeft=Math.max(0,todayDay*DAYW - sc.clientWidth/2); sc._centered=1; } }
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.tabbar button'),function(btn){
+    btn.addEventListener("click",function(){ var t=btn.dataset.tab;
+      if(t==="home") showScreen("home");
+      else if(t==="gantt") showScreen("gantt");
+      else if(t==="tasks") toast("Задачи — добавим позже");
+      else if(t==="more") toggleMenu();
+    });
+  });
+  document.getElementById("backBtn").addEventListener("click",function(){ showScreen("home"); });
+
+  function fmtShortMoney(n){ n=n||0; if(n>=1e6) return (Math.round(n/1e5)/10)+" млн"; if(n>=1e3) return Math.round(n/1e3)+" тыс"; return Math.round(n)+""; }
+  function renderDash(){
+    var dash=document.getElementById("dash"); if(!dash) return; dash.innerHTML="";
+    var r=readiness(), bd=budgetData();
+    var grid=document.createElement("div"); grid.className="kpigrid";
+    function card(t,v,u,onclick){ var c=document.createElement("div"); c.className="kpicard";
+      c.innerHTML='<div class="kt">'+t+'</div><div class="kv">'+v+' <span class="ku">'+u+'</span></div>'; c.addEventListener("click",onclick); return c; }
+    grid.appendChild(card("Бюджет", fmtShortMoney(bd.objBud), "₽", function(){ openKpi(); }));
+    grid.appendChild(card("Оплаты факт", fmtShortMoney(bd.objEarned), "₽", function(){ openCashflow(); }));
+    grid.appendChild(card("Готовность", fmtPct(r.objPct), "%", function(){ openKpi(); }));
+    dash.appendChild(grid);
+    // виджет план
+    var w1=document.createElement("div"); w1.className="widget";
+    w1.innerHTML='<div class="wh"><b>План на 2 недели</b><span class="chev">›</span></div><div class="mgticks"></div><div class="mgbody"></div>';
+    w1.addEventListener("click",function(){ showScreen("gantt"); });
+    dash.appendChild(w1); renderMiniGantt(w1.querySelector(".mgticks"), w1.querySelector(".mgbody"));
+    // виджет люди
+    var w2=document.createElement("div"); w2.className="widget";
+    w2.innerHTML='<div class="wh"><b>Прогноз людей на объекте</b><span class="chev">›</span></div><div class="mchartbody"></div><div class="wlegend"></div>';
+    w2.addEventListener("click",function(){ showScreen("gantt"); });
+    dash.appendChild(w2); renderMiniPeople(w2.querySelector(".mchartbody"), w2.querySelector(".wlegend"));
+  }
+  function renderMiniGantt(ticksEl, bodyEl){
+    var winStart=(Math.floor(todayDay/7)-1)*7; if(winStart<0) winStart=0; var winLen=35, winEnd=winStart+winLen;
+    for(var k=0;k<=5;k++){ var d=winStart+k*7; var tk=document.createElement("div"); tk.className="mgtick"; tk.style.left=(k*7/winLen*100)+"%"; tk.textContent=ddmm(dayToDate(d)); ticksEl.appendChild(tk); }
+    var known=knownIdSet();
+    var pk=state.bars.filter(function(b){ return b.typeId!==null && known[b.typeId] && b.end>winStart && b.start<winEnd; })
+                     .sort(function(a,b){return a.start-b.start;}).slice(0,5);
+    if(!pk.length){ var e=document.createElement("div"); e.style.cssText="color:var(--muted);font-size:13px;padding:6px 0"; e.textContent="Нет пакетов в ближайшие недели."; bodyEl.appendChild(e); return; }
+    pk.forEach(function(b){ var t=typeById(b.typeId); var col=t.color;
+      var row=document.createElement("div"); row.className="mgrow";
+      var done=pkgDonePct(b);
+      var lab=document.createElement("div"); lab.className="mglab";
+      lab.innerHTML='<div class="n"><i style="background:'+col+'"></i>'+escapeHtml(t.short)+'</div><div class="s">'+(b.pkgVol||0)+' '+escapeHtml(t.unit||"")+(done>0?(" · "+Math.round(done)+"%"):"")+'</div>';
+      row.appendChild(lab);
+      var tr=document.createElement("div"); tr.className="mgtrack";
+      var l=Math.max(0,(b.start-winStart)/winLen*100), rgt=Math.min(100,(b.end-winStart)/winLen*100); var w=Math.max(2,rgt-l);
+      var bar=document.createElement("div"); bar.className="mgbar"; bar.style.left=l+"%"; bar.style.width=w+"%"; bar.style.background=col;
+      if(done>0){ var f=document.createElement("div"); f.className="f"; f.style.width=done+"%"; f.style.background=col; bar.appendChild(f); }
+      tr.appendChild(bar);
+      if(todayDay>=winStart&&todayDay<=winEnd){ var tl=document.createElement("div"); tl.className="mgtoday"; tl.style.left=((todayDay-winStart)/winLen*100)+"%"; tr.appendChild(tl); }
+      row.appendChild(tr); bodyEl.appendChild(row);
+    });
+  }
+  function renderMiniPeople(bodyEl, legEl){
+    var L=computeLabor(); var startW=Math.max(0,Math.floor(todayDay/7)-1); var n=Math.min(8, WEEKS-startW);
+    var weeks=[]; var maxT=0;
+    for(var i=0;i<n;i++){ var w=startW+i; var per={}, tot=0; L.contrs.forEach(function(c){ var mh=L.weeks[w][c]||0; var ppl=mh>0?Math.ceil(mh/WORKWEEK):0; if(ppl>0){per[c]=ppl; tot+=ppl;} }); weeks.push({w:w,per:per,tot:tot}); if(tot>maxT)maxT=tot; }
+    if(maxT<=0){ bodyEl.innerHTML='<div style="color:var(--muted);font-size:13px;padding:6px 0">Нет данных: задайте работы, объёмы и сроки.</div>'; return; }
+    var chart=document.createElement("div"); chart.className="mchart"; var maxH=60;
+    weeks.forEach(function(wk){ var col=document.createElement("div"); col.className="mccol";
+      if(wk.tot>0){ var num=document.createElement("div"); num.className="mcnum"; num.textContent=wk.tot; col.appendChild(num);
+        var bar=document.createElement("div"); bar.className="mcbar"; bar.style.height=Math.max(4,Math.round(wk.tot/maxT*maxH))+"px";
+        L.contrs.forEach(function(c,ci){ if(wk.per[c]){ var seg=document.createElement("div"); seg.className="mcseg"; seg.style.height=(wk.per[c]/wk.tot*100)+"%"; seg.style.background=PROFCOL[ci%PROFCOL.length]; bar.appendChild(seg); } });
+        col.appendChild(bar);
+      }
+      var x=document.createElement("div"); x.className="mcx"; x.textContent=ddmm(dayToDate(wk.w*7)); col.appendChild(x);
+      chart.appendChild(col);
+    });
+    bodyEl.appendChild(chart);
+    L.contrs.forEach(function(c,ci){ var s=document.createElement("span"); s.innerHTML='<i style="background:'+PROFCOL[ci%PROFCOL.length]+'"></i>'+escapeHtml(c); legEl.appendChild(s); });
+  }
   statusEl=document.getElementById("status");
   try{ var zsaved=parseInt(lsGet("gantt_zoom")); if(!isNaN(zsaved)&&zsaved>=0&&zsaved<ZOOMS.length){ zi=zsaved; DAYW=ZOOMS[zi]; WEEKW=DAYW*7; } }catch(e){}
   applyZoomVars();
   buildHeader();
   load(function(){
-    render();
-    var sc=document.getElementById("scroll"); sc.scrollLeft=Math.max(0,todayDay*DAYW - sc.clientWidth/2);
-    setTimeout(function(){ toast("Загрузи справочник (меню «⋯»), затем на полосе выбери элемент и объём."); },400);
+    render(); renderDash();
+    var sc=document.getElementById("scroll"); sc.scrollLeft=Math.max(0,todayDay*DAYW - sc.clientWidth/2); sc._centered=1;
+    setTimeout(function(){ toast("Загрузи справочник: «Ещё» → Справочник (импорт)."); },500);
   });
+  showScreen("home");
   window.addEventListener("resize",render);
   loadWeather();
   function refreshToday(){
