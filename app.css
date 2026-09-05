@@ -314,3 +314,27 @@
   .reqitem .nm{flex:1;min-width:0;font-size:14px;font-weight:650}
   .reqitem input{width:84px;border:1.5px solid var(--grid-strong);border-radius:10px;padding:8px;font-size:15px;font-weight:700;text-align:right}
   .reqitem .un{font-size:12px;color:var(--muted);font-weight:600;min-width:36px}
+
+  .kpiview{max-height:min(70vh,560px);overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:12px}
+  .kpipage{min-height:0}
+  .kpielems{padding-bottom:8px}
+  #kpiSheet.sheet{max-height:88vh;display:flex;flex-direction:column}
+  #kpiSheet .kpiview{flex:1;min-height:0}
+
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .chipbtn{border:1px solid var(--grid-strong);background:#f5f7fa;color:var(--ink);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:650;cursor:pointer}
+  .chipbtn:active{background:var(--grid)}
+  .sheet.tall{max-height:92vh}
+  .catlist{max-height:50vh;overflow:auto;margin:8px 0}
+  .catcard{background:#fbfcfd;border:1px solid var(--grid);border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer}
+  .catcard:active{background:var(--grid)}
+  .catcard .cn{font-size:15px;font-weight:750}
+  .catcard .cm{font-size:12px;color:var(--muted);font-weight:600;margin-top:4px}
+  .catdetail{margin-top:8px;max-height:55vh;overflow:auto}
+  .catback{border:none;background:none;color:#2563eb;font-weight:700;font-size:14px;padding:0 0 8px;cursor:pointer}
+  .catsec{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin:12px 0 6px}
+  .catrow{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--grid);font-size:13px}
+  .catrow .l{flex:1;min-width:0}
+  .catrow .r{font-weight:700;white-space:nowrap}
+  .cattot{display:flex;justify-content:space-between;padding:10px 0;font-weight:800;font-size:15px;border-top:2px solid var(--grid-strong);margin-top:8px}
+  .reqitem .btn.danger{color:#c0392b}

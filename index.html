@@ -88,6 +88,7 @@
   <button data-act="projects">🏗 Мои проекты</button>
   <button data-act="calc">🧮 Калькулятор закупки</button>
   <button data-act="requests">📦 Заявки на материалы</button>
+  <button data-act="catalog">📚 Справочник (просмотр)</button>
   <button data-act="spec">Справочник (импорт)</button>
   <button data-act="kpi">📊 Показатели (готовность · бюджет)</button>
   <button data-act="cashflow">💸 Кэшфло (недели / месяцы)</button>
@@ -120,7 +121,8 @@
   </div>
   <div class="fields">
     <div class="field"><label>Пояснение</label><input id="fNote" placeholder="Что делаем"></div>
-    <div class="field"><label>Подрядчик</label><input id="fContr" placeholder="Подрядчик" list="contrOpts" autocomplete="off"><datalist id="contrOpts"></datalist></div>
+    <div class="field"><label>Подрядчик</label><input id="fContr" placeholder="Подрядчик или выберите ниже" list="contrOpts" autocomplete="off"><datalist id="contrOpts"></datalist>
+      <div id="contrChips" class="chips"></div></div>
   </div>
   <button class="btn" id="matBtn" style="width:100%;margin-bottom:12px">Категории ресурса (0)</button>
   <div class="reorder">
@@ -227,9 +229,7 @@
   <div class="field"><label>Статус</label>
     <select id="reqDetailStatus">
       <option>В работе</option>
-      <option>Согласовано</option>
       <option>Получено</option>
-      <option>Отменено</option>
     </select>
   </div>
   <div id="reqDetailItems" style="max-height:45vh;overflow:auto;margin:10px 0"></div>
@@ -311,6 +311,16 @@
     <button class="btn primary" id="rsSave" style="flex:1">Сохранить</button>
     <button class="btn danger" id="rsDelete" style="flex:1">Удалить</button>
   </div>
+</div>
+
+<div class="ovl" id="ovlCat"></div>
+<div class="sheet tall" id="catBrowserSheet">
+  <div class="grab"></div>
+  <h2>Справочник</h2>
+  <div class="field"><label>Дисциплина</label><select id="catDiscSel"></select></div>
+  <div id="catElemList" class="catlist"></div>
+  <div id="catElemDetail" class="catdetail" style="display:none"></div>
+  <button class="btn" id="catBrowserClose" style="width:100%;margin-top:12px">Закрыть</button>
 </div>
 
 <div class="toast" id="toast"></div>
