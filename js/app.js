@@ -1,7 +1,8 @@
 
 (function(){
   "use strict";
-  var WEEKS=53, DAYS=WEEKS*7;
+  var PAST_WEEKS=104, FUTURE_WEEKS=104; // 2 года назад + 2 года вперёд
+  var WEEKS=PAST_WEEKS+FUTURE_WEEKS, DAYS=WEEKS*7;
   var ZOOMS=[5,8,12,18], zi=2;
   var DAYW=ZOOMS[zi], WEEKW=DAYW*7, ROWH=36, BARH=28, GHEAD=24, HEADERH=46;
   // ---- проекты ----
@@ -142,7 +143,7 @@
   function startOfDay(d){ return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
   var today=startOfDay(new Date());
   var dow=(today.getDay()+6)%7;
-  var anchor=new Date(today); anchor.setDate(anchor.getDate()-dow-26*7);
+  var anchor=new Date(today); anchor.setDate(anchor.getDate()-dow-PAST_WEEKS*7);
   function addDays(d,n){ var x=new Date(d); x.setDate(x.getDate()+n); return x; }
   function dayToDate(i){ return addDays(anchor,i); }
   function dateToDay(d){ return Math.round((startOfDay(d)-anchor)/86400000); }
@@ -151,6 +152,19 @@
   function parseIso(s){ var p=(""+s).split("-"); return new Date(+p[0],+p[1]-1,+p[2]); }
   function ddmm(d){ return pad(d.getDate())+"."+pad(d.getMonth()+1); }
   var todayDay=dateToDay(today);
+  function updateTodayLine(){
+    today = startOfDay(new Date());
+    todayDay = dateToDay(today);
+    // if calendar jumped past anchor range (shouldn't with ±2y), rebuild anchor
+    if(todayDay < 0 || todayDay > DAYS){
+      var d0=(today.getDay()+6)%7;
+      anchor=new Date(today); anchor.setDate(anchor.getDate()-d0-PAST_WEEKS*7);
+      todayDay=dateToDay(today);
+    }
+    var el=document.getElementById("today");
+    if(el) el.style.left=(todayDay*DAYW)+"px";
+    return todayDay;
+  }
 
   var state={bars:[], types:[], elemRes:{}, detail:{}}; var seq=1; var typesById={}; var stateRev=0;
   function clampDay(x){ return Math.max(0,Math.min(DAYS,x)); }
@@ -557,7 +571,7 @@
       for(var w=0;w<WEEKS;w++){ var wc=document.createElement("div"); wc.className="wcell"; wc.textContent=ddmm(dayToDate(w*7)); weeks.appendChild(wc); }
       header.appendChild(weeks);
     }
-    document.getElementById("today").style.left=(todayDay*DAYW)+"px";
+    updateTodayLine();
     buildBands();
   }
   function buildBands(){
@@ -585,6 +599,7 @@
   function render(){
     if(!groupsEl){ groupsEl=document.getElementById("groups"); }
     if(!groupsEl){ console.error("groups el missing"); return; }
+    updateTodayLine();
     groupsEl.style.width=(DAYS*DAYW)+"px"; groupsEl.innerHTML="";
     var known=knownIdSet();
     // элементы с полосами, сгруппированные по дисциплине (в порядке groupOrder)
@@ -816,10 +831,28 @@
     pvInfo.textContent = (el.id!==null)?("Проект: "+(pv||0)+" "+(el.unit||"")+(v!=null&&pv>0?("  ·  доля "+(Math.round(v/pv*1000)/10)+"%"):"")):"Выберите элемент";
   }
   function fillContractors(){
-    var dl=document.getElementById("contrOpts"); if(!dl) return; var seen={}, out=[];
+    var seen={}, out=[];
     state.bars.forEach(function(b){ var c=(b.contr||"").trim(); if(c&&!seen[c.toLowerCase()]){ seen[c.toLowerCase()]=1; out.push(c); } });
     out.sort(function(a,b){return a.localeCompare(b,"ru");});
-    dl.innerHTML=""; out.forEach(function(c){ var o=document.createElement("option"); o.value=c; dl.appendChild(o); });
+    var dl=document.getElementById("contrOpts");
+    if(dl){ dl.innerHTML=""; out.forEach(function(c){ var o=document.createElement("option"); o.value=c; dl.appendChild(o); }); }
+    var chips=document.getElementById("contrChips");
+    if(chips){
+      chips.innerHTML="";
+      if(!out.length){ chips.style.display="none"; }
+      else {
+        chips.style.display="flex";
+        out.forEach(function(c){
+          var b=document.createElement("button"); b.type="button"; b.className="chipbtn"; b.textContent=c;
+          b.addEventListener("click",function(e){
+            e.preventDefault(); e.stopPropagation();
+            if(!editing) return;
+            fContr.value=c; editing.contr=c; updateBarLabel(editing);
+          });
+          chips.appendChild(b);
+        });
+      }
+    }
   }
   function openEditor(b){ editing=b; buildElemSelectors(); fNote.value=b.note||""; fContr.value=b.contr||""; fillContractors(); refreshPkg(); updateMatBtn(); ovl.classList.add("on"); sheet.classList.add("on"); }
   function moveBar(dir){
@@ -938,6 +971,7 @@
     else if(act==="requests") openRequests();
     else if(act==="kpi") openKpi();
     else if(act==="cashflow") openCashflow();
+    else if(act==="catalog") openCatalogBrowser();
     else if(act==="spec") openSpecSheet();
     else if(act==="summary") openSummary();
     else if(act==="export") exportJson();
@@ -1282,6 +1316,15 @@
       box.style.display = open ? "none" : "block";
       var caret = row.querySelector(".kcaret");
       if(caret) caret.textContent = open ? "▸" : "▾";
+      if(!open){
+        // раскрываем вниз: прокрутить блок в видимую область
+        setTimeout(function(){
+          try{
+            row.scrollIntoView({block:"start", behavior:"smooth"});
+            box.scrollIntoView({block:"nearest", behavior:"smooth"});
+          }catch(e){}
+        }, 30);
+      }
     };
     ovl6.classList.add("on"); kpiSheet.classList.add("on");
   }
@@ -1529,20 +1572,28 @@
     if(!r){ toast("Заявка не найдена"); return; }
     editingReqId=id;
     document.getElementById("reqDetailTitle").textContent="Заявка № "+r.num+(r.elem?(" · "+r.elem):"");
-    document.getElementById("reqDetailStatus").value=r.status||"В работе";
+    var st=r.status||"В работе";
+    if(st!=="В работе" && st!=="Получено") st = /получено/i.test(st) ? "Получено" : "В работе";
+    document.getElementById("reqDetailStatus").value=st;
     renderReqDetailItems(r);
     if(ovlReqDetail) ovlReqDetail.classList.add("on");
     if(reqDetailSheet) reqDetailSheet.classList.add("on");
   }
   function renderReqDetailItems(r){
     var box=document.getElementById("reqDetailItems"); box.innerHTML="";
+    if(!(r.items||[]).length){
+      box.innerHTML='<div style="color:var(--muted);font-size:13px;padding:12px 4px;text-align:center">В заявке нет позиций</div>';
+      document.getElementById("reqDetailTotal").textContent="0 ₽";
+      return;
+    }
     var total=0;
     (r.items||[]).forEach(function(it, idx){
       total += (num(it.sum)!=null?num(it.sum):((num(it.buyQty)||0)*(num(it.price)||0)));
       var row=document.createElement("div"); row.className="reqitem";
       row.innerHTML='<div class="nm">'+escapeHtml(it.name||"")+'</div>'+
         '<input type="number" inputmode="decimal" step="any" data-idx="'+idx+'" value="'+(it.buyQty!=null?it.buyQty:"")+'">'+
-        '<span class="un">'+escapeHtml(it.buyUnit||"")+'</span>';
+        '<span class="un">'+escapeHtml(it.buyUnit||"")+'</span>'+
+        '<button type="button" class="btn small danger" data-del="'+idx+'" style="padding:6px 8px;flex:0 0 auto" title="Удалить">✕</button>';
       box.appendChild(row);
     });
     document.getElementById("reqDetailTotal").textContent=fmtMoney(total)+" ₽";
@@ -1550,11 +1601,22 @@
       inp.addEventListener("input", function(){
         var i=+inp.getAttribute("data-idx");
         var q=num(inp.value); if(q==null) q=0;
+        if(!r.items[i]) return;
         r.items[i].buyQty=q;
         r.items[i].sum = q * (num(r.items[i].price)||0);
         var t=0; r.items.forEach(function(x){ t+= (num(x.sum)||0); });
         r.total=t;
         document.getElementById("reqDetailTotal").textContent=fmtMoney(t)+" ₽";
+      });
+    });
+    Array.prototype.forEach.call(box.querySelectorAll("[data-del]"), function(btn){
+      btn.addEventListener("click", function(e){
+        e.preventDefault(); e.stopPropagation();
+        var i=+btn.getAttribute("data-del");
+        r.items.splice(i,1);
+        var t=0; r.items.forEach(function(x){ t+=(num(x.sum)||((num(x.buyQty)||0)*(num(x.price)||0))); });
+        r.total=t;
+        renderReqDetailItems(r);
       });
     });
   }
@@ -1602,6 +1664,155 @@
     toast("Заявка удалена");
   });
 
+
+
+  // ---- справочник: удобный просмотр / правка ----
+  var ovlCat=document.getElementById("ovlCat"), catBrowserSheet=document.getElementById("catBrowserSheet");
+  var catBrowseElemId=null;
+  function openCatalogBrowser(){
+    ensureCatalogLoaded(function(){
+      catBrowseElemId=null;
+      fillCatDiscSel();
+      renderCatElemList();
+      var det=document.getElementById("catElemDetail"); if(det) det.style.display="none";
+      var list=document.getElementById("catElemList"); if(list) list.style.display="";
+      if(ovlCat) ovlCat.classList.add("on");
+      if(catBrowserSheet) catBrowserSheet.classList.add("on");
+    });
+  }
+  function closeCatalogBrowser(){
+    if(ovlCat) ovlCat.classList.remove("on");
+    if(catBrowserSheet) catBrowserSheet.classList.remove("on");
+    catBrowseElemId=null;
+  }
+  function fillCatDiscSel(){
+    var sel=document.getElementById("catDiscSel"); if(!sel) return;
+    var cur=sel.value;
+    var discs={};
+    allTypes().forEach(function(t){ var d=t.disc||"Без дисциплины"; discs[d]=1; });
+    var order=Object.keys(discs).sort(function(a,b){
+      var ia=DISCIPLINES.indexOf(a), ib=DISCIPLINES.indexOf(b);
+      ia=ia<0?99:ia; ib=ib<0?99:ib; return ia-ib||a.localeCompare(b,"ru");
+    });
+    sel.innerHTML='<option value="__all">Все дисциплины</option>';
+    order.forEach(function(d){ var o=document.createElement("option"); o.value=d; o.textContent=d; sel.appendChild(o); });
+    if(cur && (cur==="__all" || discs[cur])) sel.value=cur;
+  }
+  function renderCatElemList(){
+    var list=document.getElementById("catElemList"); if(!list) return;
+    list.innerHTML=""; list.style.display="";
+    var det=document.getElementById("catElemDetail"); if(det) det.style.display="none";
+    var disc=(document.getElementById("catDiscSel")||{}).value||"__all";
+    var types=allTypes().filter(function(t){
+      if(disc==="__all") return true;
+      return (t.disc||"Без дисциплины")===disc;
+    });
+    if(!types.length){
+      list.innerHTML='<div style="color:var(--muted);font-size:13px;padding:12px 4px;text-align:center">Нет элементов. Загрузите справочник (импорт).</div>';
+      return;
+    }
+    types.forEach(function(t){
+      var rs=elemRes(t.id);
+      var bud=elemBudget(t.id);
+      var nMat=0, nWork=0, nTech=0;
+      rs.forEach(function(r){
+        if(r.rtype==="Материал") nMat++;
+        else if(r.rtype==="Работа") nWork++;
+        else if(r.rtype==="Техника") nTech++;
+        else nMat++;
+      });
+      var card=document.createElement("div"); card.className="catcard";
+      card.innerHTML='<div class="cn"><span class="chip" style="background:'+t.color+';display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px"></span>'+escapeHtml(t.short)+'</div>'+
+        '<div class="cm">'+(t.projVol!=null?fmtNum(t.projVol):"0")+' '+escapeHtml(t.unit||"")+' · бюджет '+fmtMoney(bud)+' ₽</div>'+
+        '<div class="cm">Работ: '+nWork+' · Материалов: '+nMat+' · Техники: '+nTech+'</div>';
+      card.addEventListener("click",function(){ openCatElemDetail(t.id); });
+      list.appendChild(card);
+    });
+  }
+  function openCatElemDetail(id){
+    catBrowseElemId=id;
+    var t=typeById(id);
+    var list=document.getElementById("catElemList");
+    var det=document.getElementById("catElemDetail");
+    if(list) list.style.display="none";
+    det.style.display="block";
+    var rs=elemRes(id);
+    var byType={ "Работа":[], "Материал":[], "Техника":[] };
+    rs.forEach(function(r){
+      var k=r.rtype||"Материал";
+      if(!byType[k]) byType[k]=[];
+      byType[k].push(r);
+    });
+    var sumWork=0, sumMat=0, sumTech=0, sumAll=0;
+    rs.forEach(function(r){
+      var c=resourceCost(r, num(r.total)||0); sumAll+=c;
+      if(r.rtype==="Работа") sumWork+=c;
+      else if(r.rtype==="Материал") sumMat+=c;
+      else if(r.rtype==="Техника") sumTech+=c;
+    });
+    function rowsFor(arr){
+      var h="";
+      arr.forEach(function(r){
+        var cost=resourceCost(r, num(r.total)||0);
+        var detN=((state.detail&&state.detail[r.name])||[]).length;
+        h+='<div class="catrow"><div class="l">'+escapeHtml(r.name)+
+          (detN?(' <span style="color:#16A085;font-weight:700">· '+detN+' марок</span>'):'')+
+          '<div style="color:var(--muted);font-size:11px;font-weight:600">'+fmtNum(r.total)+' '+escapeHtml(r.unit||"")+(r.price!=null?(' · '+fmtMoney(r.price)+' ₽/ед'):'')+'</div></div>'+
+          '<div class="r">'+fmtMoney(cost)+' ₽</div></div>';
+      });
+      return h;
+    }
+    var html='<button type="button" class="catback" id="catBackBtn">‹ К списку элементов</button>';
+    html+='<div style="font-size:18px;font-weight:800;margin-bottom:4px">'+escapeHtml(t.short)+'</div>';
+    html+='<div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:10px">'+escapeHtml(t.disc||"")+'</div>';
+    html+='<div class="fields" style="margin-bottom:8px">';
+    html+='<div class="field"><label>Объём по проекту</label><input id="catProjVol" inputmode="decimal" value="'+(t.projVol!=null?t.projVol:"")+'"></div>';
+    html+='<div class="field"><label>Ед. изм.</label><input id="catUnit" value="'+escapeHtml(t.unit||"")+'"></div>';
+    html+='</div>';
+    ["Работа","Материал","Техника"].forEach(function(k){
+      if(!(byType[k]||[]).length) return;
+      html+='<div class="catsec">'+k+'</div>';
+      html+=rowsFor(byType[k]);
+    });
+    Object.keys(byType).forEach(function(k){
+      if(k==="Работа"||k==="Материал"||k==="Техника") return;
+      if(!byType[k].length) return;
+      html+='<div class="catsec">'+escapeHtml(k)+'</div>';
+      html+=rowsFor(byType[k]);
+    });
+    if(!rs.length) html+='<div style="color:var(--muted);font-size:13px;padding:8px 0">Нет категорий ресурсов у элемента.</div>';
+    html+='<div class="cattot"><span>Работы</span><span>'+fmtMoney(sumWork)+' ₽</span></div>';
+    html+='<div class="cattot" style="border-top:none;padding-top:4px"><span>Материалы</span><span>'+fmtMoney(sumMat)+' ₽</span></div>';
+    html+='<div class="cattot" style="border-top:none;padding-top:4px"><span>Техника</span><span>'+fmtMoney(sumTech)+' ₽</span></div>';
+    html+='<div class="cattot"><span>Итого по элементу</span><span>'+fmtMoney(sumAll)+' ₽</span></div>';
+    html+='<button class="btn primary" id="catSaveElem" style="width:100%;margin-top:12px">Сохранить изменения</button>';
+    det.innerHTML=html;
+    var back=document.getElementById("catBackBtn");
+    if(back) back.addEventListener("click", function(){ catBrowseElemId=null; renderCatElemList(); });
+    var saveBtn=document.getElementById("catSaveElem");
+    if(saveBtn) saveBtn.addEventListener("click", function(){
+      var t2=typeById(catBrowseElemId);
+      if(!t2 || t2.id==null) return;
+      var pv=num(document.getElementById("catProjVol").value);
+      var un=(document.getElementById("catUnit").value||"").trim();
+      t2.projVol=(pv!=null?pv:0);
+      t2.unit=un;
+      var found=state.types.filter(function(x){return x.id===t2.id;})[0];
+      if(found){ found.projVol=t2.projVol; found.unit=t2.unit; }
+      else if(t2.id!=null){ state.types.push({id:t2.id, short:t2.short, color:t2.color, disc:t2.disc||"", unit:t2.unit, projVol:t2.projVol}); rebuildTypeIndex(); }
+      markCatalogDirty();
+      save();
+      toast("Сохранено");
+      openCatElemDetail(catBrowseElemId);
+    });
+  }
+  if(document.getElementById("catDiscSel")){
+    document.getElementById("catDiscSel").addEventListener("change", function(){ catBrowseElemId=null; renderCatElemList(); });
+  }
+  if(ovlCat) ovlCat.addEventListener("click", closeCatalogBrowser);
+  var cbc=document.getElementById("catBrowserClose");
+  if(cbc) cbc.addEventListener("click", closeCatalogBrowser);
+  if(catBrowserSheet) attachSheetDrag(document.querySelector("#catBrowserSheet .grab"), catBrowserSheet, closeCatalogBrowser);
 
   // ---- toast ----
   var toastEl=document.getElementById("toast"), toastT=null;
@@ -1762,7 +1973,7 @@
     if(name==="home") renderDash();
     if(name==="tasks") renderTasksFeed();
     if(name==="gantt"){
-      var el=document.getElementById("today"); if(el) el.style.left=(todayDay*DAYW)+"px";
+      updateTodayLine();
       renderPeopleCard();
       var sc=document.getElementById("scroll");
       setTimeout(function(){ if(sc) sc.scrollLeft=Math.max(0, todayDay*DAYW - sc.clientWidth*0.28); },30);
@@ -1787,7 +1998,7 @@
     function card(t,v,u,onclick){ var c=document.createElement("div"); c.className="kpicard";
       c.innerHTML='<div class="kt">'+t+'</div><div class="kv">'+v+' <span class="ku">'+u+'</span></div>'; c.addEventListener("click",onclick); return c; }
     grid.appendChild(card("Бюджет", fmtShortMoney(bd.objBud), "₽", function(){ openKpi(); }));
-    grid.appendChild(card("Оплаты факт", fmtShortMoney(bd.objEarned), "₽", function(){ openCashflow(); }));
+    grid.appendChild(card("Выполнено", fmtShortMoney(bd.objEarned), "₽", function(){ openCashflow(); }));
     grid.appendChild(card("Готовность", fmtPct(r.objPct), "%", function(){ openKpi(); }));
     dash.appendChild(grid);
     // виджет план
@@ -1857,8 +2068,8 @@
   window.addEventListener("resize",render);
   function refreshToday(){
     var t=startOfDay(new Date()); if(+t===+today) return;
-    today=t; todayDay=dateToDay(t);
-    var el=document.getElementById("today"); if(el) el.style.left=(todayDay*DAYW)+"px";
+    updateTodayLine();
+    buildHeader();
     loadWeather();
   }
   document.addEventListener("visibilitychange",function(){ if(!document.hidden) refreshToday(); });
