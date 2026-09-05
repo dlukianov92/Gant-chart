@@ -71,6 +71,9 @@
   .tabbar button .ic{font-size:19px;line-height:1}
   .tabbar button.on{color:#2563eb}
   .fab{position:fixed;right:18px;bottom:calc(64px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;border:none;background:#2563eb;color:#fff;font-size:30px;font-weight:400;box-shadow:0 6px 18px rgba(37,99,235,.45);z-index:40}
+  .h2row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .miniadd{flex:0 0 auto;width:30px;height:30px;border-radius:9px;border:1.5px solid var(--grid-strong);background:#fff;color:#2563eb;font-size:20px;font-weight:600;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .miniadd:active{background:var(--grid)}
   .gtitle{font-size:16px;font-weight:750;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .projtop{padding:18px 16px 8px}
   .projtop h1{font-size:28px;font-weight:800;text-align:center;margin:0}
@@ -114,8 +117,29 @@
   .menu button.danger{color:#c0392b}
   .menu .sep{height:1px;background:var(--grid);margin:4px 6px}
 
-  .scroll{flex:1;overflow:auto;position:relative;-webkit-overflow-scrolling:touch}
-  .canvas{position:relative;min-height:100%}
+  .gwx{font-size:11px;color:var(--muted);font-weight:600;text-align:right;padding:0 2px 2px}
+  .scroll.scrolled ~ * .scrollhint, .gcard.scrolled .scrollhint{opacity:0;transition:opacity .3s}
+  .gpage{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 10px calc(80px + env(safe-area-inset-bottom))}
+  .gcard{background:var(--panel);border:1px solid var(--grid);border-radius:16px;box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden}
+  .gcardhead{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 8px}
+  .gcardhead b{font-size:15px;font-weight:750}
+  .scrollhint{font-size:12px;color:var(--muted);font-weight:600}
+  .scroll{max-height:56vh;overflow:auto;position:relative;-webkit-overflow-scrolling:touch}
+  .canvas{position:relative}
+  #peopleChart{padding:6px 6px 12px}
+  .pch{display:flex;align-items:flex-end;gap:6px;height:150px;position:relative;padding:16px 0 0 26px}
+  .pchy{position:absolute;left:0;top:0;bottom:22px;width:24px}
+  .pchy span{position:absolute;left:0;font-size:10px;color:var(--muted);font-weight:600;transform:translateY(-50%)}
+  .pchgrid{position:absolute;left:26px;right:0;border-top:1px solid var(--grid)}
+  .pcol{flex:1;min-width:16px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;position:relative;z-index:1}
+  .pcnum{font-size:11px;font-weight:800;margin-bottom:2px}
+  .pcbar{width:64%;max-width:26px;display:flex;flex-direction:column;border-radius:4px 4px 0 0;overflow:hidden}
+  .pcseg{width:100%}
+  .pcx{font-size:9px;color:var(--muted);font-weight:600;margin-top:4px;white-space:nowrap}
+  .plegend{display:flex;gap:14px;flex-wrap:wrap;padding:6px 8px 4px;justify-content:center}
+  .plegend span{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600}
+  .plegend i{width:11px;height:11px;border-radius:50%}
+  .gpage .today::before{content:"сегодня"}
   .header{position:sticky;top:0;z-index:10;background:var(--panel);height:var(--headerH);box-shadow:0 1px 0 var(--grid-strong)}
   .months,.weeks{display:flex;height:calc(var(--headerH)/2)}
   .mcell{flex:0 0 auto;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:700;
@@ -318,13 +342,23 @@
         <button class="btn ghost" id="viewBtn" aria-label="Уровень">L2</button>
         <button class="btn ghost" id="zoomBtn" aria-label="Масштаб">⇔</button>
       </div>
+      <div class="gwx" id="wxGantt"></div>
     </div>
-    <div class="scroll" id="scroll">
-      <div class="canvas" id="canvas">
-        <div class="header" id="header"></div>
-        <div class="bands" id="bands"></div>
-        <div class="today" id="today"></div>
-        <div class="groups" id="groups"></div>
+    <div class="gpage">
+      <div class="gcard">
+        <div class="gcardhead"><b>График работ</b><span class="scrollhint" id="scrollHint">Прокрутите вправо ›</span></div>
+        <div class="scroll" id="scroll">
+          <div class="canvas" id="canvas">
+            <div class="header" id="header"></div>
+            <div class="bands" id="bands"></div>
+            <div class="today" id="today"></div>
+            <div class="groups" id="groups"></div>
+          </div>
+        </div>
+      </div>
+      <div class="gcard">
+        <div class="gcardhead"><b>Прогноз людей на объекте</b></div>
+        <div id="peopleChart"></div>
       </div>
     </div>
   </div>
@@ -358,12 +392,11 @@
 <div class="ovl" id="ovl"></div>
 <div class="sheet" id="sheet">
   <div class="grab"></div>
-  <h2>Элемент</h2>
+  <div class="h2row"><h2>Элемент</h2><button class="miniadd" id="addElemBtn" aria-label="Новый элемент" title="Новый элемент">+</button></div>
   <div class="fields">
     <div class="field"><label>Дисциплина</label><select id="selDisc"></select></div>
     <div class="field"><label>Элемент</label><select id="selElem"></select></div>
   </div>
-  <button class="btn ghost" id="addElemBtn" style="width:100%;margin:-2px 0 12px;border-style:dashed">＋ Новый элемент</button>
   <div class="pkgvol" id="pkgVolRow">
     <div class="field"><label>Объём пакета (<span id="pvUnit">ед.</span>)</label><input id="fPkgVol" inputmode="decimal" placeholder="напр. 90"></div>
     <div class="field"><label>% от элемента</label><input id="fPkgPct" inputmode="decimal" placeholder="%"></div>
@@ -505,6 +538,27 @@
   <button class="btn danger" id="npDelete" style="width:100%;margin-top:8px;display:none">Удалить проект</button>
 </div>
 
+<div class="ovl" id="ovl10"></div>
+<div class="sheet" id="resSheet">
+  <div class="grab"></div>
+  <h2>Ресурс</h2>
+  <div class="field"><label>Наименование</label><input id="rsName" placeholder="Напр. Кирпич рядовой"></div>
+  <div class="field"><label>Тип</label><select id="rsType"><option value="Материал">Материал</option><option value="Работа">Работа</option><option value="Техника">Техника</option></select></div>
+  <div class="fields" style="flex-direction:row;gap:10px">
+    <div class="field" style="flex:1"><label>Ед. изм.</label><input id="rsUnit" list="unitOpts" placeholder="шт"></div>
+    <div class="field" style="flex:1"><label>Кол-во / расход</label><input id="rsQty" inputmode="decimal" placeholder="0"></div>
+  </div>
+  <div class="fields" style="flex-direction:row;gap:10px">
+    <div class="field" style="flex:1"><label>Цена, ₽/ед</label><input id="rsPrice" inputmode="decimal" placeholder="0"></div>
+    <div class="field" style="flex:1"><label>Чел-ч / ед (работа)</label><input id="rsChh" inputmode="decimal" placeholder="0"></div>
+  </div>
+  <div class="pvinfo" id="rsInfo" style="margin-bottom:10px"></div>
+  <div class="row">
+    <button class="btn primary" id="rsSave" style="flex:1">Сохранить</button>
+    <button class="btn danger" id="rsDelete" style="flex:1">Удалить</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -561,7 +615,7 @@
       var qty=(ov!=null?ov:(num(r.total)||0)*share);
       return {rtype:r.rtype, name:r.name, unit:r.unit, qty:qty, price:num(r.price), cost:(num(r.price)||0)*qty, idx:i, over:(ov!=null)};
     });
-    (b.mats||[]).forEach(function(m,j){ list.push({rtype:m.rtype||"Материал", name:m.name, unit:m.unit, qty:(num(m.qty)||0), price:null, cost:0, manual:j, over:false}); });
+    (b.mats||[]).forEach(function(m,j){ list.push({rtype:m.rtype||"Материал", name:m.name, unit:m.unit, qty:(num(m.qty)||0), price:(num(m.price)!=null?num(m.price):null), cost:((num(m.price)||0)*(num(m.qty)||0)), manual:j, over:false}); });
     return list;
   }
   function pkgCost(b){ return pkgResources(b).reduce(function(s,r){return s+(r.cost||0);},0); }
@@ -576,6 +630,7 @@
       var qty=(ov!=null?ov:(num(r.total)||0)*share);
       mh+=(num(r.chh)||0)*qty;
     });
+    (b.mats||[]).forEach(function(m){ if((m.rtype||"")==="Работа"){ mh+=(num(m.chh)||0)*(num(m.qty)||0); } });
     return mh;
   }
   var WORKWEEK=40; // 5 дней × 8 ч
@@ -640,7 +695,7 @@
       bars:state.bars.map(function(b){
       return {id:b.id,order:b.order,typeId:b.typeId,s:iso(dayToDate(b.start)),e:iso(dayToDate(b.end)),note:b.note,contr:b.contr,
         pkgVol:(b.pkgVol!=null?b.pkgVol:""), fact:(b.fact!=null?b.fact:""), resOv:(b.resOv||{}),
-        mats:(b.mats||[]).map(function(m){ return {n:m.name,u:m.unit,q:m.qty,rt:m.rtype}; })};
+        mats:(b.mats||[]).map(function(m){ return {n:m.name,u:m.unit,q:m.qty,rt:m.rtype,pr:m.price,ch:m.chh}; })};
     })});
   }
   function hydrate(raw){
@@ -653,7 +708,7 @@
           start:clampDay(dateToDay(parseIso(b.s))),end:clampDay(dateToDay(parseIso(b.e))),
           note:b.note||"",contr:b.contr||"",
           pkgVol:(b.pkgVol!=null?b.pkgVol:""), fact:(b.fact!=null?b.fact:""), resOv:(b.resOv||{}),
-          mats:(b.mats||[]).map(function(m){ return {name:m.n||m.name||"", unit:m.u||m.unit||"", qty:(m.q!=null?m.q:(m.qty!=null?m.qty:1)), rtype:(m.rt||m.rtype||"Материал")}; })};
+          mats:(b.mats||[]).map(function(m){ return {name:m.n||m.name||"", unit:m.u||m.unit||"", qty:(m.q!=null?m.q:(m.qty!=null?m.qty:1)), rtype:(m.rt||m.rtype||"Материал"), price:(m.pr!=null?m.pr:(m.price!=null?m.price:null)), chh:(m.ch!=null?m.ch:(m.chh!=null?m.chh:null))}; })};
       });
       state.bars.forEach(function(b){ if(b.end<=b.start) b.end=b.start+1; });
       var mx=0; state.bars.forEach(function(b){ var n=parseInt((b.id||"b0").replace(/\D/g,""))||0; if(n>mx)mx=n; }); seq=mx+1;
@@ -783,12 +838,47 @@
         g.appendChild(rows); groupsEl.appendChild(g);
       });
     });
-    renderLabor();
-    var minH=document.getElementById("scroll").clientHeight-HEADERH;
-    groupsEl.style.minHeight=(groupsEl.offsetHeight<minH?minH:0)+"px";
+    groupsEl.style.minHeight="";
+    renderPeopleCard();
   }
   var PROFCOL=["#C0392B","#2980B9","#16A085","#8E44AD","#E67E22","#2C3E50","#D81B60"];
-  function renderLabor(){
+  function renderPeopleCard(){
+    var host=document.getElementById("peopleChart"); if(!host) return; host.innerHTML="";
+    var L=computeLabor();
+    // недельные суммы + диапазон с данными
+    var totals=[], per=[]; var maxT=0, first=-1, last=-1;
+    for(var w=0; w<WEEKS; w++){ var s=0, pp={}; L.contrs.forEach(function(c){ var mh=L.weeks[w][c]||0; var n=mh>0?Math.ceil(mh/WORKWEEK):0; if(n>0){pp[c]=n; s+=n;} }); totals.push(s); per.push(pp); if(s>0){ if(first<0)first=w; last=w; } if(s>maxT)maxT=s; }
+    if(maxT<=0){ host.innerHTML='<div style="color:var(--muted);font-size:13px;padding:12px">Нет данных: задайте работы, объёмы и сроки пакетов.</div>'; return; }
+    // ось Y: округлим макс до кратного 5
+    var ymax=Math.max(5, Math.ceil(maxT/5)*5);
+    var wrap=document.createElement("div"); wrap.className="pchwrap"; wrap.style.overflowX="auto"; wrap.style.webkitOverflowScrolling="touch";
+    var chart=document.createElement("div"); chart.className="pch";
+    // ось + сетка
+    var yax=document.createElement("div"); yax.className="pchy";
+    for(var g=0; g<=ymax; g+=5){ var sp=document.createElement("span"); sp.style.bottom=(g/ymax*100)+"%"; sp.textContent=g; yax.appendChild(sp); }
+    chart.appendChild(yax);
+    var s0=first, s1=last; var count=s1-s0+1; var minW=Math.max(320, count*30);
+    chart.style.minWidth=minW+"px";
+    for(var w2=s0; w2<=s1; w2++){
+      var col=document.createElement("div"); col.className="pcol";
+      var tot=totals[w2];
+      if(tot>0){ var num=document.createElement("div"); num.className="pcnum"; num.textContent=tot; col.appendChild(num);
+        var bar=document.createElement("div"); bar.className="pcbar"; bar.style.height=(tot/ymax*100)+"%";
+        (function(pp,tt){ L.contrs.forEach(function(c,ci){ if(pp[c]){ var seg=document.createElement("div"); seg.className="pcseg"; seg.style.height=(pp[c]/tt*100)+"%"; seg.style.background=PROFCOL[ci%PROFCOL.length]; bar.appendChild(seg); } }); })(per[w2],tot);
+        col.appendChild(bar);
+      } else { var sp2=document.createElement("div"); sp2.style.flex="1"; col.appendChild(sp2); }
+      var x=document.createElement("div"); x.className="pcx"; x.textContent=ddmm(dayToDate(w2*7)); col.appendChild(x);
+      chart.appendChild(col);
+    }
+    // подпись оси
+    var ylab=document.createElement("div"); ylab.style.cssText="font-size:11px;color:var(--muted);font-weight:600;padding:0 0 2px 4px"; ylab.textContent="Люди";
+    host.appendChild(ylab);
+    wrap.appendChild(chart); host.appendChild(wrap);
+    var leg=document.createElement("div"); leg.className="plegend";
+    L.contrs.forEach(function(c,ci){ var s=document.createElement("span"); s.innerHTML='<i style="background:'+PROFCOL[ci%PROFCOL.length]+'"></i>'+escapeHtml(c); leg.appendChild(s); });
+    host.appendChild(leg);
+  }
+  function renderLabor_UNUSED(){
     var L=computeLabor(); if(!L.contrs.length) return;
     var wrap=document.createElement("div"); wrap.className="labor"; wrap.style.width=(DAYS*DAYW)+"px";
     var head=document.createElement("div"); head.className="dhead labhead";
@@ -1091,21 +1181,49 @@
       var cls=(r.rtype==="Работа")?"r":((r.rtype==="Техника")?"t":"m");
       var tag=(cls==="r")?"Р":((cls==="t")?"Т":"М");
       row.innerHTML='<span class="rtag rt-'+cls+'">'+tag+'</span>'+
-        '<span class="mn">'+escapeHtml(r.name)+(r.over?' <span class="ovmark">ручн.</span>':'')+'</span>'+
+        '<span class="mn">'+escapeHtml(r.name)+(r.over?' <span class="ovmark">ручн.</span>':'')+(r.manual!=null?' <span class="ovmark" style="color:#2563eb">ручн.</span>':'')+'</span>'+
         '<input class="q" inputmode="decimal"><span class="mu">'+escapeHtml(r.unit||"")+'</span>'+
-        '<button class="mdel">'+(r.manual!=null?"✕":"↺")+'</button>';
+        '<button class="mdel">'+(r.manual!=null?"⚙":"↺")+'</button>';
       var q=row.querySelector(".q"); q.value=(r.qty!=null?Math.round(r.qty*1000)/1000:"");
       q.addEventListener("input",function(){ var val=num(q.value);
         if(r.manual!=null){ b.mats[r.manual].qty=(val!=null?val:0); }
-        else { if(!b.resOv)b.resOv={}; b.resOv[r.idx]=(val!=null?val:0); }
-        row.querySelector(".mn").innerHTML=escapeHtml(r.name)+' <span class="ovmark">ручн.</span>'; save(); });
+        else { if(!b.resOv)b.resOv={}; b.resOv[r.idx]=(val!=null?val:0); row.querySelector(".mn").innerHTML=escapeHtml(r.name)+' <span class="ovmark">ручн.</span>'; }
+        save(); });
       row.querySelector(".mdel").addEventListener("click",function(){
-        if(r.manual!=null){ b.mats.splice(r.manual,1); } else { if(b.resOv) delete b.resOv[r.idx]; }
-        save(); renderMatSheet(); });
+        if(r.manual!=null){ openResSheet(b, r.manual); } else { if(b.resOv) delete b.resOv[r.idx]; save(); renderMatSheet(); } });
       list.appendChild(row);
     });
   }
   ovl3.addEventListener("click",closeMaterials);
+  // ---- настройки ресурса (ручного) ----
+  var resBar=null, resIdx=null;
+  function openResSheet(b, idx){ resBar=b; resIdx=idx; var m=b.mats[idx]; if(!m)return;
+    document.getElementById("rsName").value=m.name||"";
+    document.getElementById("rsType").value=m.rtype||"Материал";
+    document.getElementById("rsUnit").value=m.unit||"";
+    document.getElementById("rsQty").value=(m.qty!=null?m.qty:"");
+    document.getElementById("rsPrice").value=(m.price!=null?m.price:"");
+    document.getElementById("rsChh").value=(m.chh!=null?m.chh:"");
+    resInfo(); document.getElementById("ovl10").classList.add("on"); document.getElementById("resSheet").classList.add("on");
+  }
+  function resInfo(){ var q=num(document.getElementById("rsQty").value)||0, pr=num(document.getElementById("rsPrice").value)||0, ch=num(document.getElementById("rsChh").value)||0;
+    var t=document.getElementById("rsType").value; var s="Стоимость: "+fmtMoney(pr*q)+" ₽"; if(t==="Работа") s+="  ·  "+fmtNum(ch*q)+" чел-ч";
+    document.getElementById("rsInfo").textContent=s; }
+  ["rsQty","rsPrice","rsChh"].forEach(function(id){ document.getElementById(id).addEventListener("input",resInfo); });
+  document.getElementById("rsType").addEventListener("change",resInfo);
+  function closeResSheet(){ document.getElementById("ovl10").classList.remove("on"); document.getElementById("resSheet").classList.remove("on"); resBar=null; resIdx=null; }
+  document.getElementById("ovl10").addEventListener("click",closeResSheet);
+  document.getElementById("rsSave").addEventListener("click",function(){
+    if(!resBar||resIdx==null)return; var m=resBar.mats[resIdx]; if(!m)return;
+    var nm=document.getElementById("rsName").value.trim(); if(!nm){ toast("Введите наименование"); return; }
+    m.name=nm; m.rtype=document.getElementById("rsType").value; m.unit=document.getElementById("rsUnit").value.trim();
+    m.qty=num(document.getElementById("rsQty").value)||0; m.price=num(document.getElementById("rsPrice").value); m.chh=num(document.getElementById("rsChh").value);
+    save(); closeResSheet(); renderMatSheet(); updateMatBtn();
+  });
+  document.getElementById("rsDelete").addEventListener("click",function(){
+    if(!resBar||resIdx==null)return; resBar.mats.splice(resIdx,1); save(); closeResSheet(); renderMatSheet(); updateMatBtn();
+  });
+  attachSheetDrag(document.querySelector("#resSheet .grab"), document.getElementById("resSheet"), closeResSheet);
   document.getElementById("matCloseBtn").addEventListener("click",closeMaterials);
   document.getElementById("matBtn").addEventListener("click",function(){ if(editing) openMaterials(editing); });
   document.getElementById("mAddBtn").addEventListener("click",function(){
@@ -1113,9 +1231,10 @@
     if(!n){ toast("Введите ресурс"); return; }
     var u=document.getElementById("mUnit").value.trim();
     var qv=num(document.getElementById("mQty").value);
-    matBar.mats.push({name:n,unit:u,qty:(qv!=null?qv:1),rtype:"Материал"});
+    matBar.mats.push({name:n,unit:u,qty:(qv!=null?qv:1),rtype:"Материал",price:null,chh:null});
     document.getElementById("mName").value=""; document.getElementById("mUnit").value=""; document.getElementById("mQty").value="";
     save(); renderMatSheet();
+    openResSheet(matBar, matBar.mats.length-1);
   });
 
   // ---- справочник (импорт CSV: элементы + ресурсы) ----
@@ -1471,6 +1590,7 @@
       var tmaxArr=day.temperature_2m_max||[], wcArr=day.weather_code||[];
       var tom=(tmaxArr.length>1)?("завтра "+wxIcon(wcArr[1])+" "+tsign(tmaxArr[1])):"";
       if(elw) elw.innerHTML='<span class="wi">'+(nowC!=null?wxIcon(nowC):"·")+'</span><span><span class="wt">'+(nowT!=null?tsign(nowT):"—")+'</span><span class="wsub">'+tom+'</span></span>';
+      var gw=document.getElementById("wxGantt"); if(gw) gw.innerHTML=(nowT!=null?tsign(nowT):"—")+" "+(tmaxArr.length>1?("завтра "+tsign(tmaxArr[1])):"")+" "+(nowC!=null?wxIcon(nowC):"");
       p.wx=(nowC!=null?wxIcon(nowC):"")+" "+(nowT!=null?tsign(nowT):""); persistProjects();
     }).catch(function(){ if(elw) elw.innerHTML='<span class="wsub">погода недоступна</span>'; });
   }
@@ -1545,7 +1665,12 @@
     document.getElementById("fab").style.display="";
     Array.prototype.forEach.call(document.querySelectorAll('.tabbar button'),function(b){ b.classList.toggle("on", b.dataset.tab===(name==="gantt"?"gantt":"home")); });
     if(name==="home") renderDash();
-    if(name==="gantt"){ var sc=document.getElementById("scroll"); if(!sc._centered){ sc.scrollLeft=Math.max(0,todayDay*DAYW - sc.clientWidth/2); sc._centered=1; } }
+    if(name==="gantt"){
+      var el=document.getElementById("today"); if(el) el.style.left=(todayDay*DAYW)+"px";
+      renderPeopleCard();
+      var sc=document.getElementById("scroll");
+      setTimeout(function(){ sc.scrollLeft=Math.max(0, todayDay*DAYW - sc.clientWidth*0.28); },30);
+    }
   }
   Array.prototype.forEach.call(document.querySelectorAll('.tabbar button'),function(btn){
     btn.addEventListener("click",function(){ var t=btn.dataset.tab;
@@ -1556,6 +1681,7 @@
     });
   });
   document.getElementById("backBtn").addEventListener("click",function(){ showScreen("home"); });
+  (function(){ var sc=document.getElementById("scroll"), hint=document.getElementById("scrollHint"); if(sc&&hint) sc.addEventListener("scroll",function(){ hint.style.opacity=(sc.scrollLeft>20?"0":"1"); }); })();
 
   function fmtShortMoney(n){ n=n||0; if(n>=1e6) return (Math.round(n/1e5)/10)+" млн"; if(n>=1e3) return Math.round(n/1e3)+" тыс"; return Math.round(n)+""; }
   function renderDash(){
