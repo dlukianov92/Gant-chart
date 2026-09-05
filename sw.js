@@ -1,10 +1,13 @@
 // Сервис-воркер: офлайн-режим для «Плана работ».
 // ВАЖНО: при обновлении приложения меняйте номер версии ниже (v1 -> v2 ...),
-// чтобы телефон подхватил новую версию. Данные пользователя (localStorage) это не затрагивает.
-const CACHE = 'plan-rabot-v21';
+// чтобы телефон подхватил новую версию. Данные пользователя (localStorage/IDB) это не затрагивает.
+const CACHE = 'plan-rabot-v24';
 const ASSETS = [
   './',
   './index.html',
+  './app.css',
+  './js/domain-calc.js',
+  './js/app.js',
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png',
@@ -28,11 +31,9 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
-  // внешние домены (погода и пр.) — мимо кэша, напрямую в сеть
   try { if (new URL(req.url).origin !== self.location.origin) return; } catch (_) { return; }
   const isNav = req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html');
   if (isNav) {
-    // страницу берём из сети (свежая), при отсутствии сети — из кэша
     e.respondWith(
       fetch(req).then((res) => {
         const copy = res.clone();
@@ -41,7 +42,6 @@ self.addEventListener('fetch', (e) => {
       }).catch(() => caches.match(req).then((r) => r || caches.match('./index.html')))
     );
   } else {
-    // иконки/манифест — из кэша, иначе из сети
     e.respondWith(
       caches.match(req).then((r) => r || fetch(req).then((res) => {
         const copy = res.clone();
