@@ -553,6 +553,8 @@
   function discOf(t){ return (t.id===null? "Без дисциплины" : (t.disc||"Без дисциплины")); }
   function toggleDisc(d){ collapsed[d]=!collapsed[d]; try{ lsSet("gantt_collapsed",JSON.stringify(collapsed)); }catch(e){} render(); }
   function render(){
+    if(!groupsEl){ groupsEl=document.getElementById("groups"); }
+    if(!groupsEl){ console.error("groups el missing"); return; }
     groupsEl.style.width=(DAYS*DAYW)+"px"; groupsEl.innerHTML="";
     var known=knownIdSet();
     // элементы с полосами, сгруппированные по дисциплине (в порядке groupOrder)
@@ -583,11 +585,7 @@
           rows.style.height=L1ROWH+"px"; rows.appendChild(makeRollupBar(t,bars));
         } else {
           rows.style.height=(bars.length*ROWH)+"px";
-          var vis=getVisibleDayRange();
-          bars.forEach(function(b,ri){
-            if(!barIntersects(b, vis.from, vis.to)) return; // virtualization: skip offscreen bars
-            rows.appendChild(makeBar(b,ri,t));
-          });
+          bars.forEach(function(b,ri){ rows.appendChild(makeBar(b,ri,t)); });
         }
         g.appendChild(rows); groupsEl.appendChild(g);
       });
@@ -704,25 +702,37 @@
   function hideTip(){ tip.classList.remove("on"); }
   function attachDrag(el,b){
     var mode=null,startX=0,moved=0,o0=0,o1=0,downT=0,pid=null;
-    el.addEventListener("pointerdown",function(e){
-      pid=e.pointerId; try{ el.setPointerCapture(pid); }catch(_){}
-      var r=el.getBoundingClientRect(); var lx=e.clientX-r.left;
-      mode=lx<=18?"l":(lx>=r.width-18?"r":"move");
-      startX=e.clientX; moved=0; downT=Date.now(); o0=b.start; o1=b.end; el.classList.add("dragging"); e.preventDefault();
-    });
-    el.addEventListener("pointermove",function(e){
-      if(pid===null)return; var dx=e.clientX-startX; moved=Math.max(moved,Math.abs(dx)); var dd=Math.round(dx/DAYW);
+    function onMove(e){
+      if(pid===null || e.pointerId!==pid) return;
+      var dx=e.clientX-startX; moved=Math.max(moved,Math.abs(dx)); var dd=Math.round(dx/DAYW);
       var ns=o0,ne=o1;
       if(mode==="move"){ ns=o0+dd; ne=o1+dd; var wdt=o1-o0; if(ns<0){ns=0;ne=wdt;} if(ne>DAYS){ne=DAYS;ns=DAYS-wdt;} }
       else if(mode==="l"){ ns=clampDay(o0+dd); if(ns>o1-1)ns=o1-1; }
       else { ne=clampDay(o1+dd); if(ne<o0+1)ne=o0+1; }
       b.start=ns; b.end=ne; el.style.left=(ns*DAYW)+"px"; el.style.width=Math.max(DAYW,(ne-ns)*DAYW)+"px";
-      if(moved>4) showTip(e.clientX,e.clientY,ddmm(dayToDate(ns))+" – "+ddmm(dayToDate(ne-1))); e.preventDefault();
-    });
-    function up(){ if(pid===null)return; try{ el.releasePointerCapture(pid); }catch(_){}
+      if(moved>4) showTip(e.clientX,e.clientY,ddmm(dayToDate(ns))+" – "+ddmm(dayToDate(ne-1)));
+      e.preventDefault();
+    }
+    function onUp(e){
+      if(pid===null || (e && e.pointerId!==pid)) return;
+      try{ el.releasePointerCapture(pid); }catch(_){}
+      window.removeEventListener("pointermove", onMove, true);
+      window.removeEventListener("pointerup", onUp, true);
+      window.removeEventListener("pointercancel", onUp, true);
       pid=null; el.classList.remove("dragging"); hideTip();
-      if(moved<=5 && (Date.now()-downT)<300){ openEditor(b); } else { save(); render(); } }
-    el.addEventListener("pointerup",up); el.addEventListener("pointercancel",up);
+      if(moved<=5 && (Date.now()-downT)<300){ openEditor(b); } else { save(); render(); }
+    }
+    el.addEventListener("pointerdown",function(e){
+      if(e.button!=null && e.button!==0) return;
+      pid=e.pointerId; try{ el.setPointerCapture(pid); }catch(_){}
+      var r=el.getBoundingClientRect(); var lx=e.clientX-r.left;
+      mode=lx<=18?"l":(lx>=r.width-18?"r":"move");
+      startX=e.clientX; moved=0; downT=Date.now(); o0=b.start; o1=b.end; el.classList.add("dragging");
+      window.addEventListener("pointermove", onMove, true);
+      window.addEventListener("pointerup", onUp, true);
+      window.addEventListener("pointercancel", onUp, true);
+      e.preventDefault();
+    });
   }
 
   // ---- editor ----
@@ -856,16 +866,20 @@
     var nb={id:"b"+(seq++),order:mx+1,typeId:null,start:clampDay(todayDay),end:clampDay(todayDay+5),note:"",contr:"",pkgVol:"",fact:"",resOv:{},mats:[]};
     state.bars.push(nb); showScreen("gantt"); save(); render(); openEditor(nb);
   }
-  document.getElementById("fab").addEventListener("click",addPackage);
-
-  document.getElementById("zoomBtn").addEventListener("click",function(){ setZoom(zi-1); });
-  var viewBtn=document.getElementById("viewBtn"); viewBtn.textContent=viewMode;
-  viewBtn.addEventListener("click",function(){
-    viewMode=(viewMode==="L2"?"L1":"L2"); viewBtn.textContent=viewMode;
-    try{ lsSet("gantt_view",viewMode); }catch(e){}
-    buildHeader(); render();
-    toast(viewMode==="L1"?"L1 — элементы одной полоской, по месяцам (для скриншота)":"L2 — пакеты по неделям");
-  });
+  var fabBtn=document.getElementById("fab");
+  if(fabBtn) fabBtn.addEventListener("click",addPackage);
+  var zoomBtn=document.getElementById("zoomBtn");
+  if(zoomBtn) zoomBtn.addEventListener("click",function(){ setZoom(zi-1); });
+  var viewBtn=document.getElementById("viewBtn");
+  if(viewBtn){
+    viewBtn.textContent=viewMode;
+    viewBtn.addEventListener("click",function(){
+      viewMode=(viewMode==="L2"?"L1":"L2"); viewBtn.textContent=viewMode;
+      try{ lsSet("gantt_view",viewMode); }catch(e){}
+      buildHeader(); render();
+      toast(viewMode==="L1"?"L1 — элементы одной полоской, по месяцам":"L2 — пакеты по неделям");
+    });
+  }
 
   // свайп вниз за ползунок закрывает шторку
   function attachSheetDrag(grabEl, sheetEl, closeFn){
@@ -1453,7 +1467,11 @@
       c.innerHTML='<button class="pedit" data-edit="'+p.id+'">✎</button>'+
         '<h3>'+escapeHtml(p.name)+'</h3><div class="ploc">'+escapeHtml(p.loc||"")+'</div>'+
         '<div class="pmeta">'+wx+'<b>'+pct+'</b> готовность <span class="dot">•</span> '+bud+'</div>';
-      c.addEventListener("click",function(e){ if(e.target&&e.target.dataset&&e.target.dataset.edit){ openProjSheet(p.id); return; } openProject(p.id); });
+      c.addEventListener("click",function(e){
+        var ed=e.target && e.target.closest && e.target.closest("[data-edit]");
+        if(ed){ e.preventDefault(); e.stopPropagation(); openProjSheet(ed.getAttribute("data-edit")); return; }
+        openProject(p.id);
+      });
       box.appendChild(c);
     });
     var add=document.createElement("div"); add.className="paddcard"; add.innerHTML='<span class="plus">+</span>Новый проект';
@@ -1461,30 +1479,67 @@
     box.appendChild(add);
   }
   function openProject(id){
+    if(!id){ toast("Проект не найден"); return; }
     if(id!==curId){ curId=id; persistProjects(); }
-    loadKey(boardKey(), function(){ applyProjHeader(); render(); renderDash(); loadWeather(); showScreen("home"); });
+    try{
+      loadKey(boardKey(), function(){
+        try{
+          applyProjHeader();
+          showScreen("home");
+          render();
+          renderDash();
+          loadWeather();
+        }catch(err){ console.error("openProject UI", err); toast("Ошибка открытия проекта"); showScreen("home"); }
+      });
+    }catch(err){ console.error("openProject", err); toast("Ошибка загрузки проекта"); }
   }
   function showProjects(){ if(curId) save(); renderProjects(); ["scrHome","scrGantt"].forEach(function(x){document.getElementById(x).classList.remove("on");}); document.getElementById("scrProjects").classList.add("on"); document.getElementById("tabbar").style.display="none"; document.getElementById("fab").style.display="none"; menu.classList.remove("on"); }
   var editingProjId=null;
-  function openProjSheet(id){ editingProjId=id;
+  function openProjSheet(id){
+    editingProjId=id;
     var p=id?projects.filter(function(x){return x.id===id;})[0]:null;
-    document.getElementById("projSheetTitle").textContent=p?"Проект":"Новый проект";
-    document.getElementById("npName").value=p?p.name:""; document.getElementById("npLoc").value=p?(p.loc||""):"";
-    document.getElementById("npDelete").style.display=(p&&projects.length>1)?"block":"none";
-    document.getElementById("ovl9").classList.add("on"); document.getElementById("projSheet").classList.add("on");
+    var titleEl=document.getElementById("projSheetTitle");
+    var nameEl=document.getElementById("npName");
+    var locEl=document.getElementById("npLoc");
+    var delEl=document.getElementById("npDelete");
+    var ovl=document.getElementById("ovl9");
+    var sh=document.getElementById("projSheet");
+    if(!ovl||!sh||!nameEl){ toast("Форма проекта недоступна"); console.error("projSheet DOM missing"); return; }
+    if(titleEl) titleEl.textContent=p?"Проект":"Новый проект";
+    nameEl.value=p?p.name:"";
+    if(locEl) locEl.value=p?(p.loc||""):"";
+    if(delEl) delEl.style.display=(p&&projects.length>1)?"block":"none";
+    ovl.classList.add("on"); sh.classList.add("on");
+    setTimeout(function(){ try{ nameEl.focus(); }catch(e){} }, 50);
   }
   function closeProjSheet(){ document.getElementById("ovl9").classList.remove("on"); document.getElementById("projSheet").classList.remove("on"); }
   document.getElementById("ovl9").addEventListener("click",closeProjSheet);
   document.getElementById("npCancel").addEventListener("click",closeProjSheet);
-  document.getElementById("npCreate").addEventListener("click",function(){
-    var name=document.getElementById("npName").value.trim(); if(!name){ toast("Введите название"); return; }
-    var loc=document.getElementById("npLoc").value.trim();
-    if(editingProjId){ var p=projects.filter(function(x){return x.id===editingProjId;})[0]; if(p){ p.name=name; p.loc=loc; } persistProjects(); closeProjSheet(); if(editingProjId===curId) applyProjHeader(); renderProjects(); return; }
-    if(curId) save();
-    var id="p"+Date.now(); var proj={id:id,name:name,loc:loc,lat:null,lng:null,key:"gantt_board_"+id,stats:{},wx:""};
-    projects.push(proj); curId=id; persistProjects();
-    resetState(); state.bars=defaultBars(); save(); applyProjHeader(); render(); renderDash();
-    closeProjSheet(); showScreen("home"); toast("Проект создан: "+name);
+  var npCreateBtn=document.getElementById("npCreate");
+  if(npCreateBtn) npCreateBtn.addEventListener("click",function(){
+    try{
+      var nameEl=document.getElementById("npName");
+      var name=(nameEl&&nameEl.value||"").trim(); if(!name){ toast("Введите название"); return; }
+      var loc=((document.getElementById("npLoc")||{}).value||"").trim();
+      if(editingProjId){
+        var p=projects.filter(function(x){return x.id===editingProjId;})[0];
+        if(p){ p.name=name; p.loc=loc; }
+        persistProjects(); closeProjSheet();
+        if(editingProjId===curId) applyProjHeader();
+        renderProjects(); toast("Сохранено"); return;
+      }
+      if(curId) try{ saveImmediate(); }catch(e){ try{ save(); }catch(e2){} }
+      var id="p"+Date.now();
+      var proj={id:id,name:name,loc:loc,lat:null,lng:null,key:"gantt_board_"+id,stats:{},wx:""};
+      projects.push(proj); curId=id; persistProjects();
+      resetState(); state.bars=defaultBars(); rebuildTypeIndex();
+      try{ saveImmediate(); }catch(e){ try{ save(); }catch(e2){} }
+      applyProjHeader();
+      closeProjSheet();
+      showScreen("home");
+      try{ render(); renderDash(); }catch(err){ console.error(err); }
+      toast("Проект создан: "+name);
+    }catch(err){ console.error("npCreate", err); toast("Ошибка создания проекта"); }
   });
   document.getElementById("npDelete").addEventListener("click",function(){
     if(!editingProjId||projects.length<2) return;
@@ -1595,10 +1650,6 @@
     load(function(){
       render(); renderDash(); renderProjects();
       var sc=document.getElementById("scroll"); sc.scrollLeft=Math.max(0,todayDay*DAYW - sc.clientWidth/2); sc._centered=1;
-      if(!sc._virtBound){ sc._virtBound=1; var virtT=null; sc.addEventListener("scroll",function(){
-        if(virtT) clearTimeout(virtT);
-        virtT=setTimeout(function(){ render(); }, 80);
-      }, {passive:true}); }
       loadWeather();
       document.getElementById("tabbar").style.display="none"; document.getElementById("fab").style.display="none";
     });
