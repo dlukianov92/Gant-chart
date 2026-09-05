@@ -63,6 +63,17 @@
     </div>
   </div>
 
+  <!-- ЗАДАЧИ / ЛЕНТА -->
+  <div class="screen" id="scrTasks">
+    <div class="top">
+      <div class="toprow">
+        <h1 style="flex:1">Задачи</h1>
+      </div>
+      <div class="subline"><span class="loc">Заявки и запросы по объекту</span></div>
+    </div>
+    <div class="dash" id="tasksFeed" style="padding-bottom:calc(90px + env(safe-area-inset-bottom))"></div>
+  </div>
+
   <div class="tabbar" id="tabbar">
     <button data-tab="home" class="on"><span class="ic">🏢</span>Объект</button>
     <button data-tab="gantt"><span class="ic">📅</span>График</button>
@@ -207,6 +218,29 @@
   <h2>Заявки на материалы</h2>
   <div id="reqList" style="max-height:55vh;overflow:auto"></div>
   <button class="btn" id="reqCloseBtn" style="width:100%;margin-top:12px">Закрыть</button>
+</div>
+
+<div class="ovl" id="ovlReqDetail"></div>
+<div class="sheet" id="reqDetailSheet">
+  <div class="grab"></div>
+  <h2 id="reqDetailTitle">Заявка</h2>
+  <div class="field"><label>Статус</label>
+    <select id="reqDetailStatus">
+      <option>В работе</option>
+      <option>Согласовано</option>
+      <option>Получено</option>
+      <option>Отменено</option>
+    </select>
+  </div>
+  <div id="reqDetailItems" style="max-height:45vh;overflow:auto;margin:10px 0"></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0 12px;font-weight:800">
+    <span>Итого</span><span id="reqDetailTotal">0 ₽</span>
+  </div>
+  <div class="row">
+    <button class="btn primary" id="reqDetailSave" style="flex:1">Сохранить</button>
+    <button class="btn" id="reqDetailClose" style="flex:1">Закрыть</button>
+  </div>
+  <button class="btn danger" id="reqDetailDelete" style="width:100%;margin-top:8px">Удалить заявку</button>
 </div>
 
 <div class="ovl" id="ovl5"></div>
