@@ -279,6 +279,7 @@
   .kpidots .kd{font-size:12px;font-weight:700;color:var(--muted);padding:5px 12px;border-radius:20px;background:var(--grid);cursor:pointer}
   .kpidots .kd.on{background:#2F5496;color:#fff}
   .cftabs{display:flex;gap:8px;margin-bottom:10px}
+  .cfview{max-height:56vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
   .cftab{flex:1;padding:9px;border:1.5px solid var(--grid-strong);border-radius:10px;background:#fff;font-size:14px;font-weight:700;color:var(--muted)}
   .cftab.on{background:#2F5496;color:#fff;border-color:#2F5496}
   .cfrow{display:flex;align-items:center;gap:8px;padding:5px 0}
@@ -334,6 +335,16 @@
   .catback{border:none;background:none;color:#2563eb;font-weight:700;font-size:14px;padding:0 0 8px;cursor:pointer}
   .catsec{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin:12px 0 6px}
   .catrow{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--grid);font-size:13px}
+  .catrow.has-det{cursor:pointer}
+  .cardet-caret{display:inline-block;transition:transform .15s;color:var(--muted);font-weight:800}
+  .catrow.open .cardet-caret{transform:rotate(90deg)}
+  .catdet{display:none;padding:2px 0 6px 14px;background:#fbfcfd;border-bottom:1px solid var(--grid)}
+  .catdet.open{display:block}
+  .catdrow{display:flex;justify-content:space-between;gap:8px;padding:6px 4px;font-size:12px;border-bottom:1px dashed var(--grid)}
+  .catdrow:last-child{border-bottom:none}
+  .catdrow .l{flex:1;min-width:0}
+  .catdrow .s{color:var(--muted);font-size:11px;font-weight:600;margin-top:1px}
+  .catdrow .r{font-weight:700;white-space:nowrap;color:#16A085}
   .catrow .l{flex:1;min-width:0}
   .catrow .r{font-weight:700;white-space:nowrap}
   .cattot{display:flex;justify-content:space-between;padding:10px 0;font-weight:800;font-size:15px;border-top:2px solid var(--grid-strong);margin-top:8px}
