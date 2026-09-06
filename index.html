@@ -96,9 +96,7 @@
   <div class="sep"></div>
   <button data-act="export">Экспорт в файл</button>
   <button data-act="import">Импорт из файла</button>
-  <div class="sep"></div>
-  <button data-act="reset" class="danger">Сброс к 20 полоскам</button>
-</div>
+  </div>
 <input type="file" id="importFile" accept="application/json,.json" style="display:none">
 
 <div class="tip" id="tip"></div>
@@ -111,12 +109,12 @@
     <div class="field"><label>Элемент</label><select id="selElem"></select></div>
   </div>
   <div class="pkgvol" id="pkgVolRow">
-    <div class="field"><label>Объём пакета (<span id="pvUnit">ед.</span>)</label><input id="fPkgVol" inputmode="decimal" placeholder="90 или =380+270*3"></div>
-    <div class="field"><label>% от элемента</label><input id="fPkgPct" inputmode="decimal" placeholder="%"></div>
+    <div class="field"><label>Объём пакета (<span id="pvUnit">ед.</span>)</label><input id="fPkgVol" inputmode="text" placeholder="90 или =380+270*3"></div>
+    <div class="field"><label>% от элемента</label><input id="fPkgPct" inputmode="text" placeholder="%"></div>
     <div class="pvinfo" id="pvInfo"></div>
   </div>
   <div class="pkgvol">
-    <div class="field"><label>Факт выполнено (<span id="fvUnit">ед.</span>)</label><input id="fFact" inputmode="decimal" placeholder="45 или =20+25"></div>
+    <div class="field"><label>Факт выполнено (<span id="fvUnit">ед.</span>)</label><input id="fFact" inputmode="text" placeholder="45 или =20+25"></div>
     <div class="field"><label>Готовность</label><input id="fDone" readonly placeholder="%"></div>
   </div>
   <div class="fields">
@@ -193,7 +191,7 @@
   <h2>Калькулятор закупки</h2>
   <div class="field"><label>Работа / Пакет</label><select id="calcEl"></select></div>
   <div class="pkgvol">
-    <div class="field"><label>Объём (<span id="calcUnit">ед.</span>)</label><input id="calcVol" inputmode="decimal" placeholder="объём"></div>
+    <div class="field"><label>Объём (<span id="calcUnit">ед.</span>)</label><input id="calcVol" inputmode="text" placeholder="объём или =100+50*2"></div>
     <div class="pvinfo" id="calcInfo"></div>
   </div>
   <p class="hint" style="margin:0 0 8px">Нажмите «+» у материала — в корзину. Покупаете позиции отдельно.</p>
