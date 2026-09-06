@@ -95,9 +95,11 @@
   <button data-act="summary">Сводка: категории и готовность</button>
   <div class="sep"></div>
   <button data-act="export">Экспорт в файл</button>
-  <button data-act="import">Импорт из файла</button>
+  <button data-act="importGantt">📥 Импорт пакетов Gantt (CSV)</button>
+  <button data-act="import">Импорт проекта (JSON)</button>
   </div>
 <input type="file" id="importFile" accept="application/json,.json" style="display:none">
+<input type="file" id="ganttImportFile" accept=".csv,text/csv,text/plain" style="display:none">
 
 <div class="tip" id="tip"></div>
 <div class="ovl" id="ovl"></div>
@@ -109,12 +111,36 @@
     <div class="field"><label>Элемент</label><select id="selElem"></select></div>
   </div>
   <div class="pkgvol" id="pkgVolRow">
-    <div class="field"><label>Объём пакета (<span id="pvUnit">ед.</span>)</label><input id="fPkgVol" inputmode="text" placeholder="90 или =380+270*3"></div>
-    <div class="field"><label>% от элемента</label><input id="fPkgPct" inputmode="text" placeholder="%"></div>
+    <div class="field"><label>Объём пакета (<span id="pvUnit">ед.</span>)</label>
+      <input id="fPkgVol" inputmode="decimal" placeholder="90">
+      <div class="fxpad" data-for="fPkgVol" title="Арифметика">
+        <button type="button" data-fx="=">=</button>
+        <button type="button" data-fx="+">+</button>
+        <button type="button" data-fx="-">−</button>
+        <button type="button" data-fx="*">×</button>
+        <button type="button" data-fx="/">÷</button>
+        <button type="button" data-fx="(">(</button>
+        <button type="button" data-fx=")">)</button>
+        <button type="button" data-fx="ok" class="fxok">=</button>
+      </div>
+    </div>
+    <div class="field"><label>% от элемента</label><input id="fPkgPct" inputmode="decimal" placeholder="%"></div>
     <div class="pvinfo" id="pvInfo"></div>
   </div>
   <div class="pkgvol">
-    <div class="field"><label>Факт выполнено (<span id="fvUnit">ед.</span>)</label><input id="fFact" inputmode="text" placeholder="45 или =20+25"></div>
+    <div class="field"><label>Факт выполнено (<span id="fvUnit">ед.</span>)</label>
+      <input id="fFact" inputmode="decimal" placeholder="45">
+      <div class="fxpad" data-for="fFact">
+        <button type="button" data-fx="=">=</button>
+        <button type="button" data-fx="+">+</button>
+        <button type="button" data-fx="-">−</button>
+        <button type="button" data-fx="*">×</button>
+        <button type="button" data-fx="/">÷</button>
+        <button type="button" data-fx="(">(</button>
+        <button type="button" data-fx=")">)</button>
+        <button type="button" data-fx="ok" class="fxok">=</button>
+      </div>
+    </div>
     <div class="field"><label>Готовность</label><input id="fDone" readonly placeholder="%"></div>
   </div>
   <div class="fields">
@@ -191,7 +217,19 @@
   <h2>Калькулятор закупки</h2>
   <div class="field"><label>Работа / Пакет</label><select id="calcEl"></select></div>
   <div class="pkgvol">
-    <div class="field"><label>Объём (<span id="calcUnit">ед.</span>)</label><input id="calcVol" inputmode="text" placeholder="объём или =100+50*2"></div>
+    <div class="field"><label>Объём (<span id="calcUnit">ед.</span>)</label>
+      <input id="calcVol" inputmode="decimal" placeholder="объём">
+      <div class="fxpad" data-for="calcVol">
+        <button type="button" data-fx="=">=</button>
+        <button type="button" data-fx="+">+</button>
+        <button type="button" data-fx="-">−</button>
+        <button type="button" data-fx="*">×</button>
+        <button type="button" data-fx="/">÷</button>
+        <button type="button" data-fx="(">(</button>
+        <button type="button" data-fx=")">)</button>
+        <button type="button" data-fx="ok" class="fxok">=</button>
+      </div>
+    </div>
     <div class="pvinfo" id="calcInfo"></div>
   </div>
   <p class="hint" style="margin:0 0 8px">Нажмите «+» у материала — в корзину. Покупаете позиции отдельно.</p>
@@ -319,6 +357,7 @@
   <div id="catElemList" class="catlist"></div>
   <div id="catElemDetail" class="catdetail" style="display:none"></div>
   <button class="btn" id="catBrowserClose" style="width:100%;margin-top:12px">Закрыть</button>
+  <button class="btn" id="catBrowserBack" style="width:100%;margin-top:12px;display:none">‹ К списку элементов</button>
 </div>
 
 <div class="toast" id="toast"></div>
