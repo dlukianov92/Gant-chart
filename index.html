@@ -111,12 +111,12 @@
     <div class="field"><label>Элемент</label><select id="selElem"></select></div>
   </div>
   <div class="pkgvol" id="pkgVolRow">
-    <div class="field"><label>Объём пакета (<span id="pvUnit">ед.</span>)</label><input id="fPkgVol" inputmode="decimal" placeholder="напр. 90"></div>
+    <div class="field"><label>Объём пакета (<span id="pvUnit">ед.</span>)</label><input id="fPkgVol" inputmode="decimal" placeholder="90 или =380+270*3"></div>
     <div class="field"><label>% от элемента</label><input id="fPkgPct" inputmode="decimal" placeholder="%"></div>
     <div class="pvinfo" id="pvInfo"></div>
   </div>
   <div class="pkgvol">
-    <div class="field"><label>Факт выполнено (<span id="fvUnit">ед.</span>)</label><input id="fFact" inputmode="decimal" placeholder="напр. 45"></div>
+    <div class="field"><label>Факт выполнено (<span id="fvUnit">ед.</span>)</label><input id="fFact" inputmode="decimal" placeholder="45 или =20+25"></div>
     <div class="field"><label>Готовность</label><input id="fDone" readonly placeholder="%"></div>
   </div>
   <div class="fields">
@@ -230,7 +230,6 @@
     <select id="reqDetailStatus">
       <option>В работе</option>
       <option>Получено</option>
-      <option>Отменено</option>
     </select>
   </div>
   <div id="reqDetailItems" style="max-height:45vh;overflow:auto;margin:10px 0"></div>
@@ -264,7 +263,7 @@
 </div>
 
 <div class="ovl" id="ovl7"></div>
-<div class="sheet" id="cfSheet">
+<div class="sheet tall" id="cfSheet">
   <div class="grab"></div>
   <h2>Кэшфло (равномерно по пакетам)</h2>
   <div class="cftabs">
