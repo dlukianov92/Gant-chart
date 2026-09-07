@@ -100,8 +100,9 @@
   <button data-act="importPay">📥 Импорт оплат (CSV)</button>
   <button data-act="import">Импорт проекта (JSON)</button>
   </div>
-<input type="file" id="importFile" accept="application/json,.json" style="display:none">
-<input type="file" id="ganttImportFile" accept=".csv,text/csv,text/plain" style="display:none">
+<input type="file" id="importFile" class="file-hidden" accept="application/json,.json">
+<input type="file" id="ganttImportFile" class="file-hidden" accept=".csv,text/csv,text/plain">
+<input type="file" id="payImportFile" class="file-hidden" accept=".csv,.json,text/csv,application/json">
 
 
 <div class="ovl" id="ovlPay"></div>
@@ -110,10 +111,9 @@
   <h2>Бюджет ↔ Оплаты</h2>
   <div class="pvinfo" id="payBudgetHead" style="margin-bottom:10px"></div>
   <div class="row" style="gap:8px;margin-bottom:10px">
-    <button class="btn small primary" id="payImportBtn" style="flex:1">📥 Импорт оплат (CSV / JSON)</button>
+    <label class="btn small primary" for="payImportFile" id="payImportBtn" style="flex:1;text-align:center;display:block;box-sizing:border-box;cursor:pointer">📥 Импорт оплат (CSV / JSON)</label>
   </div>
-  <div class="pvinfo" style="margin-bottom:8px">Загрузите файл оплат отдельно — как справочник. В CSV нужны колонки: Название, Сумма, Код (фильтр «Блок Б»). Опционально: Дисциплина, Элемент.</div>
-  <input type="file" id="payImportFile" accept=".csv,.json,text/csv,application/json" style="display:none">
+  <div class="pvinfo" style="margin-bottom:8px">Выберите файл CSV или JSON. Нужны колонки Название, Сумма, Код (Блок Б).</div>
   <div id="payBudgetView" class="paytree"></div>
   <button class="btn" id="payBudgetClose" style="width:100%;margin-top:12px">Закрыть</button>
 </div>
@@ -225,8 +225,8 @@
   <div class="specview" id="specView"></div>
   <button class="btn" id="specCloseBtn" style="width:100%;margin-top:10px">Закрыть</button>
 </div>
-<input type="file" id="specFile" accept=".csv,text/csv,text/plain" style="display:none">
-<input type="file" id="detFile" accept=".csv,text/csv,text/plain" style="display:none">
+<input type="file" id="specFile" class="file-hidden" accept=".csv,text/csv,text/plain">
+<input type="file" id="detFile" class="file-hidden" accept=".csv,text/csv,text/plain">
 
 <div class="ovl" id="ovl8"></div>
 <div class="sheet" id="calcSheet">
