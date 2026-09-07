@@ -1127,12 +1127,14 @@
     else if(act==="projects") showProjects();
     else if(act==="calc") openCalc();
     else if(act==="requests") openRequests();
+    else if(act==="paybudget") openPayBudget();
     else if(act==="kpi") openKpi();
     else if(act==="cashflow") openCashflow();
     else if(act==="catalog") openCatalogBrowser();
     else if(act==="spec") openSpecSheet();
     else if(act==="summary") openSummary();
     else if(act==="export") exportJson();
+    else if(act==="importPay"){ var pf=document.getElementById("payImportFile"); if(pf) pf.click(); }
     else if(act==="importGantt"){ var gf=document.getElementById("ganttImportFile"); if(gf) gf.click(); }
     else if(act==="import") importFile.click();
     
@@ -2245,6 +2247,303 @@
     reader.onerror=function(){ toast("Ошибка чтения файла"); ganttImportFile.value=""; };
     reader.readAsText(f);
   });
+
+
+  // ---- Бюджет ↔ Оплаты ----
+  var payItems = []; // {id,c,n,s,d,di,el}
+  var payExpand = {disc:{}, elem:{}}; // open state
+  var PAY_KEY = "gantt_payments_v1";
+
+  var PAY_RULES = [
+    {k:["кирпич","кладк","кладочн","перемыч","цемент"], di:"Общестроительные работы", el:"Кладка стен"},
+    {k:["армопояс","армо.?пояс"], di:"Общестроительные работы", el:"Армопоясы"},
+    {k:["жб\\s*плит","жби","перекрыт","плиты"], di:"Общестроительные работы", el:"Монтаж перекрытий и анкеровка"},
+    {k:["омонолич","анкер"], di:"Общестроительные работы", el:"Омоноличивание участков перекрытия"},
+    {k:["лестниц","косоур"], di:"Общестроительные работы", el:"Устройство лестниц"},
+    {k:["балкон"], di:"Общестроительные работы", el:"Устройство балконов"},
+    {k:["металл.*кров","мк\\s*кров","ферм"], di:"Общестроительные работы", el:"Устройство металлоконструкций кровли"},
+    {k:["кровл","кровель"], di:"Архитектура", el:"Устройство кровли"},
+    {k:["перегород","гкл","гипсокарт","металлокаркас"], di:"Общестроительные работы", el:"Перегородки (ГКЛ на 2-х развязанных каркасах)"},
+    {k:["стяжк","ровнител"], di:"Архитектура", el:"Устройство цементно-песчаной стяжки пола 50 мм"},
+    {k:["стеклопакет","\\bокн"], di:"Архитектура", el:"Монтаж оконных блоков"},
+    {k:["витраж"], di:"Архитектура", el:"Витражи"},
+    {k:["двер"], di:"Архитектура", el:"Монтаж дверных блоков (в т.ч. противопожарных)"},
+    {k:["фасад"], di:"Архитектура", el:"Отделка фасадов"},
+    {k:["водопровод","\\bхвс\\b","водоснаб"], di:"Трубопроводы", el:"Монтаж системы холодного водоснабжения В1"},
+    {k:["\\bгвс\\b"], di:"Трубопроводы", el:"Монтаж системы горячего водоснабжения Т3/Т4"},
+    {k:["канал"], di:"Трубопроводы", el:"Монтаж хоз-бытовой канализации К1"},
+    {k:["водосток"], di:"Трубопроводы", el:"Монтаж внутреннего водостока К2"},
+    {k:["пожарн.*вод"], di:"Трубопроводы", el:"Монтаж противопожарного водопровода В2"},
+    {k:["сантех","сан\\.?\\s*тех"], di:"Трубопроводы", el:""},
+    {k:["отоплен","радиатор"], di:"Механика", el:"Монтаж трубопроводов отопления"},
+    {k:["итп","теплогенер","котел"], di:"Механика", el:"Монтаж оборудования ИТП"},
+    {k:["вентил","воздуховод","приточ","вытяж"], di:"Механика", el:"Монтаж воздуховодов и фасонных частей"},
+    {k:["лифт"], di:"Механика", el:"Монтаж пассажирских лифтов"},
+    {k:["пожар.*сигн"], di:"Электрика", el:"Монтаж системы пожарной сигнализации (ПС)"},
+    {k:["электр","кабел","лотк","освещ","розет"], di:"Электрика", el:""},
+    {k:["бетон","раствор","\\bцпс\\b","арматур"], di:"Общестроительные работы", el:"Армопоясы"},
+    {k:["песок","метиз","саморез","крепеж"], di:"Общестроительные работы", el:""},
+    {k:["автокран","\\bкран","экскаватор","погрузчик","автоуслуг","автотранспорт","доставк","перевозк"], di:"Общестроительные работы", el:"Прочие работы"},
+    {k:["геодез","съемк","съёмк","обследован","проект","проектир"], di:"Общестроительные работы", el:"Прочие работы"},
+    {k:["алмазн","демонтаж"], di:"Общестроительные работы", el:"Прочие работы"},
+    {k:["общестроительн","\\bсмр\\b","\\bовр\\b","вып\\.?\\s*работ","работ[аы]\\s+блок"], di:"Общестроительные работы", el:"Прочие работы"}
+  ];
+  function mapPaymentName(name){
+    var t=(name||"").toLowerCase();
+    for(var i=0;i<PAY_RULES.length;i++){
+      var rule=PAY_RULES[i];
+      for(var j=0;j<rule.k.length;j++){
+        try{ if(new RegExp(rule.k[j],"i").test(t)) return {di:rule.di, el:rule.el||""}; }catch(e){}
+      }
+    }
+    return {di:"", el:""};
+  }
+  function loadPaymentsFromStore(){
+    try{
+      var raw = StorageAdapter.getSync(PAY_KEY);
+      if(raw){ var o=JSON.parse(raw); if(o&&o.items){ payItems=o.items; return true; } }
+    }catch(e){}
+    return false;
+  }
+  function savePaymentsToStore(){
+    try{ StorageAdapter.setSync(PAY_KEY, JSON.stringify({items:payItems, total:payItems.reduce(function(s,x){return s+(x.s||0);},0)})); }catch(e){}
+  }
+  function applyPayMapping(){
+    payItems.forEach(function(p){
+      if(p.di) return; // already mapped
+      var m=mapPaymentName(p.n||p.name||"");
+      p.di=m.di; p.el=m.el;
+    });
+  }
+  function ingestPayItems(items){
+    payItems = (items||[]).map(function(p){
+      return {
+        id: String(p.id||p.num||""),
+        c: p.c||p.contr||"",
+        n: p.n||p.name||"",
+        s: num(p.s!=null?p.s:p.sum)||0,
+        d: p.d||p.date||"",
+        di: p.di||p.disc||"",
+        el: p.el||p.elem||""
+      };
+    });
+    applyPayMapping();
+    savePaymentsToStore();
+  }
+  function importPaymentsText(text, fname){
+    text=(""+text).replace(/^\uFEFF/,"");
+    if((fname||"").toLowerCase().indexOf(".json")>=0 || text.trim().charAt(0)==="{"){
+      try{
+        var o=JSON.parse(text);
+        ingestPayItems(o.items||o);
+        return payItems.length;
+      }catch(e){ return 0; }
+    }
+    // CSV. Поддерживаем:
+    // 1) наш формат: Номер;Контрагент;Название;Сумма;Код;Дата;Дисциплина;Элемент
+    // 2) исходный экспорт счетов: Номер;Срочность;Контрагент;Название;Сумма;Код;...;Дата
+    var rows=splitCSV(text); if(!rows.length) return 0;
+    var items=[];
+    rows.forEach(function(r){
+      if(!r.length) return;
+      // skip header-like
+      var head=(r.join(" ")).toLowerCase();
+      if(/номер|назван|сумма|код/.test(head) && /номер|код/.test((r[0]||"").toLowerCase()+" "+(r[5]||"").toLowerCase()+" "+(r[3]||"").toLowerCase()) && num(r[3])==null && num(r[4])==null) return;
+
+      // Format A: Номер;Контрагент;Название;Сумма;Код;Дата;Дисциплина;Элемент  (8 cols)
+      if(r.length>=4 && r.length<=10 && num(r[3])!=null){
+        var code=(r[4]||"").trim();
+        if(code && code.toLowerCase()!=="блок б" && !/код/i.test(code) && r.length>=5){
+          // if code column exists and not Блок Б — skip
+          if(code.toLowerCase()!=="блок б") return;
+        }
+        var sum=num(r[3]); if(sum==null) return;
+        items.push({
+          id:r[0]||"", c:r[1]||"", n:r[2]||"", s:sum,
+          d:(r[5]||"").slice(0,10),
+          di:(r[6]||"").trim(), el:(r[7]||"").trim()
+        });
+        return;
+      }
+      // Format B: original accounts export (11 cols)
+      if(r.length>=6){
+        var code2=(r[5]||"").trim();
+        if(code2 && code2.toLowerCase()!=="блок б") return;
+        var sum2=num(r[4]); if(sum2==null) return;
+        items.push({id:r[0]||"", c:r[2]||"", n:r[3]||"", s:sum2, d:(r[10]||r[6]||"").toString().slice(0,10), di:"", el:""});
+        return;
+      }
+      if(r.length>=2){
+        var sum3=num(r[r.length-1]); if(sum3==null) return;
+        items.push({id:"", c:"", n:r[0]||"", s:sum3, d:"", di:"", el:""});
+      }
+    });
+    if(!items.length) return 0;
+    ingestPayItems(items);
+    return items.length;
+  }
+
+  function buildPayTree(){
+    // budget by disc/elem from catalog
+    var discBudget={}, elemBudgetMap={}, discOrder=[], elemOrder={};
+    allTypes().forEach(function(t){
+      var d=t.disc||"Без дисциплины";
+      var b=elemBudget(t.id);
+      if(!discBudget[d]){ discBudget[d]=0; discOrder.push(d); elemOrder[d]=[]; }
+      discBudget[d]+=b;
+      elemBudgetMap[t.short]= {id:t.id, disc:d, budget:b, unit:t.unit||"", projVol:num(t.projVol)||0};
+      elemOrder[d].push(t.short);
+    });
+    // payments aggregation
+    var discPay={}, elemPay={}, discPayList={}, elemPayList={}, unmapped=0, unmappedList=[];
+    var totalPay=0;
+    payItems.forEach(function(p){
+      totalPay += (p.s||0);
+      var d=p.di||"— Не распределено";
+      var e=p.el||"— Без элемента";
+      if(!p.di){ unmapped += (p.s||0); unmappedList.push(p); }
+      discPay[d]=(discPay[d]||0)+(p.s||0);
+      (discPayList[d]=discPayList[d]||[]).push(p);
+      var ek=d+"||"+e;
+      elemPay[ek]=(elemPay[ek]||0)+(p.s||0);
+      (elemPayList[ek]=elemPayList[ek]||[]).push(p);
+      if(p.di && discOrder.indexOf(p.di)<0) discOrder.push(p.di);
+    });
+    // ensure unmapped disc last
+    if(discPay["— Не распределено"] && discOrder.indexOf("— Не распределено")<0) discOrder.push("— Не распределено");
+    var totalBudget=objBudget();
+    return {
+      totalBudget: totalBudget, totalPay: totalPay, unmapped: unmapped,
+      discOrder: discOrder, discBudget: discBudget, discPay: discPay,
+      elemOrder: elemOrder, elemBudgetMap: elemBudgetMap,
+      elemPay: elemPay, discPayList: discPayList, elemPayList: elemPayList,
+      unmappedList: unmappedList
+    };
+  }
+
+  function renderPayBudget(){
+    var head=document.getElementById("payBudgetHead");
+    var view=document.getElementById("payBudgetView");
+    if(!view) return;
+    var t=buildPayTree();
+    var pct = t.totalBudget>0 ? (t.totalPay/t.totalBudget*100) : 0;
+    if(head){
+      if(!payItems.length){ head.innerHTML="Оплаты не загружены. Импортируйте CSV/JSON файл оплат."; }
+      else head.innerHTML = "Бюджет проекта <b>"+fmtMoney(t.totalBudget)+" ₽</b> · Оплаты <b style='color:#0f766e'>"+fmtMoney(t.totalPay)+" ₽</b> · "+
+        (pct? (Math.round(pct*10)/10)+"% от бюджета" : "нет бюджета") +
+        (t.unmapped? (" · <span style='color:#b45309'>не разнесено "+fmtMoney(t.unmapped)+" ₽</span>") : "");
+    }
+    var html="";
+    t.discOrder.forEach(function(d){
+      var db=t.discBudget[d]||0, dp=t.discPay[d]||0;
+      if(db<=0 && dp<=0) return;
+      var open = !!payExpand.disc[d];
+      var ratio = db>0 ? Math.min(100, dp/db*100) : (dp>0?100:0);
+      html += '<div class="payrow disc" data-disc="'+escapeHtml(d)+'">';
+      html += '<div class="caret">'+(open?"▾":"▸")+'</div>';
+      html += '<div class="body"><div class="title">'+escapeHtml(d)+'</div>';
+      html += '<div class="paybar"><i style="width:'+ratio+'%"'+(dp>db*1.05?' class="over"':'')+'></i></div></div>';
+      html += '<div class="nums"><div class="b">Бюдж. '+fmtMoney(db)+'</div><div class="p">Опл. '+fmtMoney(dp)+'</div>';
+      if(db>0) html += '<div class="d">'+(Math.round(ratio*10)/10)+'%</div>';
+      html += '</div></div>';
+      if(!open) return;
+      // elements under disc
+      var names = (t.elemOrder[d]||[]).slice();
+      // also elements that only appear in payments
+      Object.keys(t.elemPay).forEach(function(ek){
+        if(ek.indexOf(d+"||")!==0) return;
+        var en = ek.slice((d+"||").length);
+        if(names.indexOf(en)<0) names.push(en);
+      });
+      names.forEach(function(en){
+        var eb = (t.elemBudgetMap[en]&&t.elemBudgetMap[en].disc===d) ? t.elemBudgetMap[en].budget : 0;
+        var ek = d+"||"+en;
+        var ep = t.elemPay[ek]||0;
+        if(eb<=0 && ep<=0) return;
+        var eopen = !!payExpand.elem[ek];
+        var er = eb>0 ? Math.min(100, ep/eb*100) : (ep>0?100:0);
+        html += '<div class="payrow elem" data-elem="'+escapeHtml(ek)+'">';
+        html += '<div class="caret">'+(eopen?"▾":"▸")+'</div>';
+        html += '<div class="body"><div class="title">'+escapeHtml(en)+'</div>';
+        html += '<div class="paybar"><i style="width:'+er+'%"'+(ep>eb*1.05?' class="over"':'')+'></i></div></div>';
+        html += '<div class="nums"><div class="b">'+fmtMoney(eb)+'</div><div class="p">'+fmtMoney(ep)+'</div></div></div>';
+        if(!eopen) return;
+        var list = (t.elemPayList[ek]||[]).slice().sort(function(a,b){ return (b.s||0)-(a.s||0); });
+        list.forEach(function(p){
+          html += '<div class="payrow pay"><div class="caret"></div><div class="body"><div class="title">'+escapeHtml(p.n||"")+'</div>';
+          html += '<div class="meta">'+escapeHtml(p.c||"")+(p.d?(" · "+p.d):"")+'</div></div>';
+          html += '<div class="nums"><div class="p">'+fmtMoney(p.s)+'</div></div></div>';
+        });
+      });
+      // payments on disc without element
+      var bare = (t.discPayList[d]||[]).filter(function(p){ return !p.el; });
+      if(bare.length){
+        var ek2 = d+"||— Без элемента";
+        var ep2 = bare.reduce(function(s,p){return s+(p.s||0);},0);
+        var eopen2 = !!payExpand.elem[ek2];
+        html += '<div class="payrow elem" data-elem="'+escapeHtml(ek2)+'">';
+        html += '<div class="caret">'+(eopen2?"▾":"▸")+'</div>';
+        html += '<div class="body"><div class="title">— Без элемента</div></div>';
+        html += '<div class="nums"><div class="p">'+fmtMoney(ep2)+'</div></div></div>';
+        if(eopen2){
+          bare.sort(function(a,b){return (b.s||0)-(a.s||0);}).forEach(function(p){
+            html += '<div class="payrow pay"><div class="caret"></div><div class="body"><div class="title">'+escapeHtml(p.n||"")+'</div>';
+            html += '<div class="meta">'+escapeHtml(p.c||"")+(p.d?(" · "+p.d):"")+'</div></div>';
+            html += '<div class="nums"><div class="p">'+fmtMoney(p.s)+'</div></div></div>';
+          });
+        }
+      }
+    });
+    if(!html) html = '<div style="color:var(--muted);padding:16px;font-size:13px">Нет данных. Загрузите справочник (бюджет) и оплаты.</div>';
+    view.innerHTML = html;
+  }
+
+  function openPayBudget(){
+    ensureCatalogLoaded(function(){
+      if(!payItems.length) loadPaymentsFromStore();
+      renderPayBudget();
+      document.getElementById("ovlPay").classList.add("on");
+      document.getElementById("payBudgetSheet").classList.add("on");
+    });
+  }
+  function closePayBudget(){
+    document.getElementById("ovlPay").classList.remove("on");
+    document.getElementById("payBudgetSheet").classList.remove("on");
+  }
+  (function(){
+    var ov=document.getElementById("ovlPay"); if(ov) ov.addEventListener("click", closePayBudget);
+    var cl=document.getElementById("payBudgetClose"); if(cl) cl.addEventListener("click", closePayBudget);
+    var view=document.getElementById("payBudgetView");
+    if(view) view.addEventListener("click", function(e){
+      var row=e.target.closest(".payrow"); if(!row||row.classList.contains("pay")) return;
+      if(row.getAttribute("data-disc")!=null){
+        var d=row.getAttribute("data-disc");
+        payExpand.disc[d]=!payExpand.disc[d];
+        renderPayBudget();
+      } else if(row.getAttribute("data-elem")!=null){
+        var ek=row.getAttribute("data-elem");
+        payExpand.elem[ek]=!payExpand.elem[ek];
+        renderPayBudget();
+      }
+    });
+    var ib=document.getElementById("payImportBtn");
+    var iff=document.getElementById("payImportFile");
+    if(ib&&iff){
+      ib.addEventListener("click", function(){ iff.click(); });
+      iff.addEventListener("change", function(){
+        var f=iff.files&&iff.files[0]; if(!f) return;
+        var r=new FileReader();
+        r.onload=function(){
+          var n=importPaymentsText(r.result||"", f.name);
+          iff.value="";
+          if(!n){ toast("Не удалось импортировать оплаты"); return; }
+          renderPayBudget();
+          toast("Импортировано оплат: "+n);
+        };
+        r.readAsText(f);
+      });
+    }
+  })();
 
   // ---- toast ----
   var toastEl=document.getElementById("toast"), toastT=null;
