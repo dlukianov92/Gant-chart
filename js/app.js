@@ -194,6 +194,16 @@
   function elemTotalMH(id){ return elemRes(id).reduce(function(s,r){ return s + (r.rtype==="Работа"?((num(r.chh)||0)*(num(r.total)||0)):0); },0); }
   // освоенные чел-ч элемента = общий чел-ч × (сумма факта пакетов / проектный объём)
   function elemFactVol(id){ var s=0; state.bars.forEach(function(b){ if(b.typeId===id) s+=(num(b.fact)||0); }); return s; }
+  // сумма объёмов пакетов по элементу (план pkgVol)
+  function elemPkgVolSum(id, excludeBarId){
+    var s=0;
+    state.bars.forEach(function(b){
+      if(b.typeId!==id) return;
+      if(excludeBarId && b.id===excludeBarId) return;
+      s += (num(b.pkgVol)||0);
+    });
+    return s;
+  }
   function readiness(){
     var byEl=[], disc={}, dorder=[], objT=0, objE=0;
     allTypes().forEach(function(t){
@@ -915,8 +925,29 @@
     fPkgVol.value=(editing.pkgVol!=null?editing.pkgVol:""); fFact.value=(editing.fact!=null?editing.fact:"");
     var pv=num(el.projVol)||0, v=num(editing.pkgVol);
     fPkgPct.value=(pv>0&&v!=null)?(Math.round(v/pv*1000)/10):"";
-    fDone.value=(num(editing.pkgVol)&&num(editing.fact)!=null)?(Math.round(pkgDonePct(editing))+" %"):"";
-    pvInfo.textContent = (el.id!==null)?("Проект: "+(pv||0)+" "+(el.unit||"")+(v!=null&&pv>0?("  ·  доля "+(Math.round(v/pv*1000)/10)+"%"):"")):"Выберите элемент";
+    fDone.value=(num(editing.pkgVol)!=null&&num(editing.fact)!=null)?(Math.round(pkgDonePct(editing))+" %"):"";
+    if(el.id==null){ pvInfo.innerHTML="Выберите элемент из справочника"; pvInfo.style.color=""; return; }
+    var u=el.unit||"";
+    var other=elemPkgVolSum(el.id, editing.id); // другие пакеты без текущего
+    var inPkgs=other+(v!=null?v:0); // с учётом текущего ввода
+    var restOther=Math.round((pv-other)*1000)/1000; // сколько ещё можно заложить
+    var rest=Math.round((pv-inPkgs)*1000)/1000; // остаток после этого пакета
+    var html='<span class="pvi-proj">Проект <b>'+fmtNum(pv)+'</b> '+escapeHtml(u)+'</span>';
+    html+=' <span class="pvi-sep">·</span> ';
+    html+='<span class="pvi-used">в пакетах <b>'+fmtNum(Math.round(other*1000)/1000)+'</b></span>';
+    html+=' <span class="pvi-sep">·</span> ';
+    var restCls = restOther < -0.001 ? "pvi-rest neg" : (restOther < 0.001 ? "pvi-rest zero" : "pvi-rest");
+    html+='<span class="'+restCls+'">остаток <b>'+fmtNum(restOther)+'</b> '+escapeHtml(u)+'</span>';
+    if(v!=null && v!==0 && pv>0){
+      html+=' <span class="pvi-sep">·</span> ';
+      html+='<span class="pvi-share">доля пакета '+(Math.round(v/pv*1000)/10)+'%</span>';
+      if(Math.abs(rest-restOther)>0.0005){
+        html+=' <span class="pvi-sep">·</span> ';
+        var afterCls = rest < -0.001 ? "pvi-rest neg" : "pvi-after";
+        html+='<span class="'+afterCls+'">после пакета <b>'+fmtNum(rest)+'</b></span>';
+      }
+    }
+    pvInfo.innerHTML=html;
   }
   function fillContractors(){
     var seen={}, out=[];
@@ -2004,21 +2035,24 @@
           h+='</div><div class="r">'+fmtMoney(cost)+' ₽</div></div>';
           // editable rate row
           h+='<div class="catrate" data-ri="'+idxInRs+'">';
-          h+='<label>₽/ед</label><input type="text" inputmode="decimal" data-field="price" value="'+(r.price!=null&&r.price!==""?r.price:"")+'">';
+          h+='<label>Расценка ₽/ед</label><input type="text" inputmode="decimal" data-field="price" value="'+(r.price!=null&&r.price!==""?r.price:"")+'">';
           if(r.rtype==="Работа"){
             h+='<label>чел-ч/ед</label><input type="text" inputmode="decimal" data-field="chh" value="'+(r.chh!=null&&r.chh!==""?r.chh:"")+'">';
           }
           h+='</div>';
           if(detN){
             h+='<div class="catmarks" id="'+cid+'" style="display:none">';
-            marks.forEach(function(d){
+            marks.forEach(function(d, di){
               var rash=(num(d.perCat)||0)*qty;
               var conv=num(d.conv)||1;
               var buy=roundBuy(rash/conv, d.buyUnit);
               var sum=buy*(num(d.price)||0);
               h+='<div class="catmark"><div class="l">'+escapeHtml(d.name||"")+
                 '<div style="color:var(--muted);font-size:11px">'+fmtNum(Math.round(rash*100)/100)+' '+escapeHtml(d.unit||"")+
-                ' → '+fmtNum(buy)+' '+escapeHtml(d.buyUnit||"")+'</div></div>'+
+                ' → '+fmtNum(buy)+' '+escapeHtml(d.buyUnit||"")+'</div>'+
+                '<div class="catrate catrate-mark" data-cat="'+escapeHtml(r.name)+'" data-di="'+di+'">'+
+                  '<label>₽/ед зак.</label><input type="text" inputmode="decimal" data-field="price" value="'+(d.price!=null&&d.price!==""?d.price:"")+'">'+
+                '</div></div>'+
                 '<div class="r">'+fmtMoney(sum)+' ₽</div></div>';
             });
             h+='</div>';
@@ -2042,16 +2076,30 @@
         bodyEl.innerHTML=body;
         // bind rate inputs — update rs without full repaint of volume field
         Array.prototype.forEach.call(bodyEl.querySelectorAll(".catrate"), function(row){
-          var ri=+row.getAttribute("data-ri");
           Array.prototype.forEach.call(row.querySelectorAll("input"), function(inp){
+            inp.addEventListener("click", function(e){ e.stopPropagation(); });
             inp.addEventListener("change", function(){
               var field=inp.getAttribute("data-field");
               var val=num(inp.value);
-              if(rs[ri]) rs[ri][field]=val;
+              if(row.classList.contains("catrate-mark")){
+                var cat=row.getAttribute("data-cat");
+                var di=+row.getAttribute("data-di");
+                if(state.detail && state.detail[cat] && state.detail[cat][di]){
+                  state.detail[cat][di][field]=val;
+                  markCatalogDirty();
+                }
+              } else {
+                var ri=+row.getAttribute("data-ri");
+                if(rs[ri]) rs[ri][field]=val;
+                // сразу пишем в state.elemRes (без масштабирования объёма)
+                if(catBrowseElemId && state.elemRes[catBrowseElemId] && state.elemRes[catBrowseElemId][ri]){
+                  state.elemRes[catBrowseElemId][ri][field]=val;
+                  markCatalogDirty();
+                }
+              }
+              try{ save(); }catch(e){}
               paintBody();
             });
-            // prevent row expand when focusing input
-            inp.addEventListener("click", function(e){ e.stopPropagation(); });
           });
         });
       }
