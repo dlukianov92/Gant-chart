@@ -1122,7 +1122,29 @@
   var menu=document.getElementById("menu"), importFile=document.getElementById("importFile");
   function toggleMenu(){ menu.classList.toggle("on"); }
   document.addEventListener("click",function(e){ if(menu.classList.contains("on") && !menu.contains(e.target) && !e.target.closest('[data-tab="more"]')) menu.classList.remove("on"); });
-  menu.addEventListener("click",function(e){ var act=e.target&&e.target.dataset?e.target.dataset.act:null; if(!act)return; menu.classList.remove("on");
+  menu.addEventListener("click",function(e){
+    var btn=e.target.closest("[data-act]"); if(!btn) return;
+    var act=btn.getAttribute("data-act"); if(!act) return;
+    // файловые импорты — клик по input ДО закрытия меню (иначе iOS/Android глушат диалог)
+    if(act==="importPay"){
+      var pf=document.getElementById("payImportFile");
+      menu.classList.remove("on");
+      if(pf){ try{ pf.value=""; }catch(_){ } pf.click(); }
+      return;
+    }
+    if(act==="importGantt"){
+      var gf=document.getElementById("ganttImportFile");
+      menu.classList.remove("on");
+      if(gf){ try{ gf.value=""; }catch(_){ } gf.click(); }
+      return;
+    }
+    if(act==="import"){
+      menu.classList.remove("on");
+      try{ importFile.value=""; }catch(_){ }
+      importFile.click();
+      return;
+    }
+    menu.classList.remove("on");
     if(act==="types") openTypeSheet();
     else if(act==="projects") showProjects();
     else if(act==="calc") openCalc();
@@ -1134,10 +1156,6 @@
     else if(act==="spec") openSpecSheet();
     else if(act==="summary") openSummary();
     else if(act==="export") exportJson();
-    else if(act==="importPay"){ var pf=document.getElementById("payImportFile"); if(pf) pf.click(); }
-    else if(act==="importGantt"){ var gf=document.getElementById("ganttImportFile"); if(gf) gf.click(); }
-    else if(act==="import") importFile.click();
-    
   });
   function exportJson(){
     try{
@@ -2498,7 +2516,32 @@
     view.innerHTML = html;
   }
 
+  function bindPayImportFile(){
+    var iff=document.getElementById("payImportFile");
+    if(!iff || iff._payBound) return;
+    iff._payBound=1;
+    iff.addEventListener("change", function(){
+      var f=iff.files&&iff.files[0]; if(!f) return;
+      toast("Читаю файл…");
+      var r=new FileReader();
+      r.onload=function(){
+        var n=importPaymentsText(r.result||"", f.name);
+        try{ iff.value=""; }catch(_){ }
+        if(!n){ toast("Не удалось импортировать оплаты. Нужны колонки Название, Сумма, Код."); return; }
+        try{
+          var sh=document.getElementById("payBudgetSheet");
+          if(sh && !sh.classList.contains("on")) openPayBudget();
+          else renderPayBudget();
+        }catch(e){ renderPayBudget(); }
+        toast("Импортировано оплат: "+n);
+      };
+      r.onerror=function(){ toast("Ошибка чтения файла"); };
+      r.readAsText(f);
+    });
+  }
+  bindPayImportFile();
   function openPayBudget(){
+    bindPayImportFile();
     ensureCatalogLoaded(function(){
       if(!payItems.length) loadPaymentsFromStore();
       renderPayBudget();
@@ -2526,20 +2569,26 @@
         renderPayBudget();
       }
     });
-    var ib=document.getElementById("payImportBtn");
     var iff=document.getElementById("payImportFile");
-    if(ib&&iff){
-      ib.addEventListener("click", function(){ iff.click(); });
+    if(iff && !iff._payBound){
+      iff._payBound=1;
       iff.addEventListener("change", function(){
         var f=iff.files&&iff.files[0]; if(!f) return;
+        toast("Читаю файл…");
         var r=new FileReader();
         r.onload=function(){
           var n=importPaymentsText(r.result||"", f.name);
-          iff.value="";
-          if(!n){ toast("Не удалось импортировать оплаты"); return; }
-          renderPayBudget();
+          try{ iff.value=""; }catch(_){ }
+          if(!n){ toast("Не удалось импортировать оплаты. Проверьте CSV (Название, Сумма, Код)."); return; }
+          // открыть окно сравнения, если закрыто
+          try{
+            var sh=document.getElementById("payBudgetSheet");
+            if(sh && !sh.classList.contains("on")) openPayBudget();
+            else renderPayBudget();
+          }catch(e){ renderPayBudget(); }
           toast("Импортировано оплат: "+n);
         };
+        r.onerror=function(){ toast("Ошибка чтения файла"); };
         r.readAsText(f);
       });
     }
