@@ -248,7 +248,7 @@
   .rt-m{background:#4472C4}.rt-r{background:#16A085}.rt-t{background:#7F8C8D}
   .pkgvol{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;flex-wrap:wrap}
   .pkgvol .field{flex:1;min-width:120px;margin:0}
-  .pvinfo{flex-basis:100%;font-size:11px;color:var(--muted);font-weight:600;margin-top:2px}
+  
   .sumtot{display:flex;justify-content:space-between;gap:12px;background:#fbfcfd;border-radius:10px;padding:10px 12px;font-size:14px;margin-bottom:6px}
   #tDisc{background:#fff}
   #calcEl{width:100%;border:1.5px solid var(--grid-strong);border-radius:10px;padding:11px;font-size:15px;background:#fff}
@@ -358,6 +358,23 @@
   .fxpad button:active{background:var(--grid)}
   .fxpad button.fxok{background:#2563eb;color:#fff;border-color:#2563eb;min-width:48px}
 
-  .catrate{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:4px 0 10px 18px;font-size:12px}
-  .catrate label{color:var(--muted);font-weight:600}
-  .catrate input{width:72px;border:1.5px solid var(--grid-strong);border-radius:8px;padding:6px 8px;font-size:13px;font-weight:700}
+  
+  
+  
+
+  .catrate-mark{padding-left:0;margin-top:4px}
+  
+
+  .pvinfo{flex-basis:100%;font-size:12px;color:var(--muted);font-weight:600;margin-top:4px;line-height:1.45}
+  .pvinfo .pvi-rest{color:#0f766e;background:#ecfdf5;padding:2px 8px;border-radius:8px;font-weight:700}
+  .pvinfo .pvi-rest b{font-weight:800}
+  .pvinfo .pvi-rest.neg{color:#b91c1c;background:#fef2f2}
+  .pvinfo .pvi-rest.zero{color:#a16207;background:#fef9c3}
+  .pvinfo .pvi-after{color:#2563eb}
+  .pvinfo .pvi-sep{opacity:.45;margin:0 2px}
+  .catrate{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 0 12px 18px;font-size:12px;background:#f8fafc;border-radius:10px;margin:0 0 6px;padding-left:12px;padding-right:10px}
+  .catrate label{color:var(--muted);font-weight:700;font-size:11px}
+  .catrate input{width:84px;border:1.5px solid var(--grid-strong);border-radius:8px;padding:7px 8px;font-size:14px;font-weight:700;background:#fff}
+  .catrate input:focus{border-color:#2563eb;outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+  .catrate-mark{background:transparent;padding:4px 0 0;margin:0}
+  .catrate-mark input{width:72px;font-size:13px}
