@@ -378,3 +378,22 @@
   .catrate input:focus{border-color:#2563eb;outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
   .catrate-mark{background:transparent;padding:4px 0 0;margin:0}
   .catrate-mark input{width:72px;font-size:13px}
+
+  .paytree{max-height:55vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .payrow{display:flex;align-items:flex-start;gap:8px;padding:10px 8px;border-bottom:1px solid var(--grid);cursor:pointer}
+  .payrow:active{background:#f1f5f9}
+  .payrow .caret{width:18px;flex:0 0 18px;font-weight:800;color:var(--muted);padding-top:2px}
+  .payrow .body{flex:1;min-width:0}
+  .payrow .title{font-weight:800;font-size:14px}
+  .payrow .meta{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px}
+  .payrow .nums{flex:0 0 auto;text-align:right;font-size:12px;font-weight:700;line-height:1.35}
+  .payrow .nums .b{color:#1e293b}
+  .payrow .nums .p{color:#0f766e}
+  .payrow .nums .d{color:#b45309;font-size:11px}
+  .payrow.disc{background:#f8fafc}
+  .payrow.elem{padding-left:18px}
+  .payrow.pay{padding-left:28px;cursor:default;background:#fff}
+  .payrow.pay .title{font-weight:600;font-size:12px}
+  .paybar{height:6px;border-radius:4px;background:#e2e8f0;margin-top:6px;overflow:hidden}
+  .paybar > i{display:block;height:100%;background:linear-gradient(90deg,#0ea5e9,#0f766e);border-radius:4px}
+  .paybar > i.over{background:linear-gradient(90deg,#f59e0b,#dc2626)}

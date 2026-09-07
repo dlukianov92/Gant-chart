@@ -91,15 +91,32 @@
   <button data-act="catalog">📚 Справочник (просмотр)</button>
   <button data-act="spec">Справочник (импорт)</button>
   <button data-act="kpi">📊 Показатели (готовность · бюджет)</button>
+  <button data-act="paybudget">💳 Бюджет ↔ Оплаты</button>
   <button data-act="cashflow">💸 Кэшфло (недели / месяцы)</button>
   <button data-act="summary">Сводка: категории и готовность</button>
   <div class="sep"></div>
   <button data-act="export">Экспорт в файл</button>
   <button data-act="importGantt">📥 Импорт пакетов Gantt (CSV)</button>
+  <button data-act="importPay">📥 Импорт оплат (CSV)</button>
   <button data-act="import">Импорт проекта (JSON)</button>
   </div>
 <input type="file" id="importFile" accept="application/json,.json" style="display:none">
 <input type="file" id="ganttImportFile" accept=".csv,text/csv,text/plain" style="display:none">
+
+
+<div class="ovl" id="ovlPay"></div>
+<div class="sheet tall" id="payBudgetSheet">
+  <div class="grab"></div>
+  <h2>Бюджет ↔ Оплаты</h2>
+  <div class="pvinfo" id="payBudgetHead" style="margin-bottom:10px"></div>
+  <div class="row" style="gap:8px;margin-bottom:10px">
+    <button class="btn small primary" id="payImportBtn" style="flex:1">📥 Импорт оплат (CSV / JSON)</button>
+  </div>
+  <div class="pvinfo" style="margin-bottom:8px">Загрузите файл оплат отдельно — как справочник. В CSV нужны колонки: Название, Сумма, Код (фильтр «Блок Б»). Опционально: Дисциплина, Элемент.</div>
+  <input type="file" id="payImportFile" accept=".csv,.json,text/csv,application/json" style="display:none">
+  <div id="payBudgetView" class="paytree"></div>
+  <button class="btn" id="payBudgetClose" style="width:100%;margin-top:12px">Закрыть</button>
+</div>
 
 <div class="tip" id="tip"></div>
 <div class="ovl" id="ovl"></div>
