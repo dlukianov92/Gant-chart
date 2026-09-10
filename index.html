@@ -84,22 +84,30 @@
 </div>
 
 <div class="menu" id="menu">
-  <button data-act="types">Элементы</button>
-  <button data-act="projects">🏗 Мои проекты</button>
+  <div class="menulabel">Загрузка данных</div>
+  <button data-act="spec">📚 Справочник (импорт)</button>
+  <button data-act="importGantt">📅 Пакеты Gantt (CSV)</button>
+  <button data-act="importPay">💳 Оплаты (CSV)</button>
+  <button data-act="import">🗂 Проект целиком (JSON)</button>
+  <div class="sep"></div>
+  <div class="menulabel">Показатели</div>
+  <button data-act="kpi">🏗 Строительная готовность</button>
+  <button data-act="kpiBudget">💰 Бюджет</button>
+  <button data-act="kpiDone">✅ Выполнение</button>
+  <button data-act="paybudget">💳 Бюджет ↔ Оплаты</button>
+  <button data-act="cashflow">💸 Кэшфло</button>
+  <button data-act="summary">📋 Сводка</button>
+  <div class="sep"></div>
+  <div class="menulabel">Работа</div>
   <button data-act="calc">🧮 Калькулятор закупки</button>
   <button data-act="requests">📦 Заявки на материалы</button>
-  <button data-act="catalog">📚 Справочник (просмотр)</button>
-  <button data-act="spec">Справочник (импорт)</button>
-  <button data-act="kpi">📊 Показатели (готовность · бюджет)</button>
-  <button data-act="paybudget">💳 Бюджет ↔ Оплаты</button>
-  <button data-act="cashflow">💸 Кэшфло (недели / месяцы)</button>
-  <button data-act="summary">Сводка: категории и готовность</button>
+  <button data-act="catalog">📖 Справочник (просмотр)</button>
   <div class="sep"></div>
+  <div class="menulabel">Настройки</div>
+  <button data-act="types">Элементы</button>
+  <button data-act="projects">🏗 Мои проекты</button>
   <button data-act="export">Экспорт в файл</button>
-  <button data-act="importGantt">📥 Импорт пакетов Gantt (CSV)</button>
-  <button data-act="importPay">📥 Импорт оплат (CSV)</button>
-  <button data-act="import">Импорт проекта (JSON)</button>
-  </div>
+</div>
 <input type="file" id="importFile" class="file-hidden" accept="application/json,.json">
 <input type="file" id="ganttImportFile" class="file-hidden" accept=".csv,text/csv,text/plain">
 <input type="file" id="payImportFile" class="file-hidden" accept=".csv,.json,text/csv,application/json">
@@ -310,7 +318,7 @@
 <div class="ovl" id="ovl6"></div>
 <div class="sheet" id="kpiSheet">
   <div class="grab"></div>
-  <h2>Показатели проекта</h2>
+  <h2 id="kpiTitle">Показатели проекта</h2>
   <div class="kpiview" id="kpiView"></div>
   <button class="btn" id="kpiCloseBtn" style="width:100%;margin-top:12px">Закрыть</button>
 </div>

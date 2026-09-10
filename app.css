@@ -409,3 +409,14 @@
   }
   label.btn{cursor:pointer; margin:0; font:inherit; -webkit-user-select:none; user-select:none}
   label.btn.primary{background:var(--accent,#2563eb); color:#fff; border:none; padding:10px 12px; border-radius:12px; font-weight:700}
+
+  .menu .menulabel{
+    font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--muted);padding:10px 14px 4px;
+  }
+  .kpigrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .kpicard{background:#fff;border:1px solid var(--grid-strong);border-radius:14px;padding:12px 14px;cursor:pointer}
+  .kpicard:active{background:#f1f5f9}
+  .kpicard .kt{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px}
+  .kpicard .kv{font-size:20px;font-weight:800;letter-spacing:-.02em}
+  .kpicard .ku{font-size:13px;font-weight:700;color:var(--muted)}
