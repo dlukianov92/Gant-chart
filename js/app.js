@@ -1150,7 +1150,9 @@
     else if(act==="calc") openCalc();
     else if(act==="requests") openRequests();
     else if(act==="paybudget") openPayBudget();
-    else if(act==="kpi") openKpi();
+    else if(act==="kpi") openKpi("ready");
+    else if(act==="kpiBudget") openKpi("budget");
+    else if(act==="kpiDone") openKpi("done");
     else if(act==="cashflow") openCashflow();
     else if(act==="catalog") openCatalogBrowser();
     else if(act==="spec") openSpecSheet();
@@ -1411,33 +1413,55 @@
     var byDisc=dorder.map(function(d){ var x=disc[d]; x.pct=(x.bud>0?x.earned/x.bud*100:0); return x; });
     return {byEl:byEl, byDisc:byDisc, objBud:objB, objEarned:objE};
   }
-  function openKpi(){
+  function openKpi(mode){
+    // mode: "ready" | "budget" | "done"  (default ready)
+    mode = mode || "ready";
     var v=document.getElementById("kpiView"); v.innerHTML="";
+    var titleEl=document.getElementById("kpiTitle");
     var d=readiness(), bd=budgetData();
-    if(d.objTot<=0 && bd.objBud<=0){ v.innerHTML='<div style="color:var(--muted);font-size:13px;padding:10px 2px">Нет данных. Загрузите справочник (чел-ч и цена у категорий / детализацию) и введите факт по пакетам.</div>'; ovl6.classList.add("on"); kpiSheet.classList.add("on"); return; }
-    var pager=document.createElement("div"); pager.className="kpipager";
-    function discBlock(title, rows, mode){
-      // mode: ready | budget — rows have .name .pct and extra fields
+    var titles={ready:"Строительная готовность", budget:"Бюджет проекта", done:"Выполнение (стоимость)"};
+    if(titleEl) titleEl.textContent = titles[mode] || "Показатели";
+
+    if(mode==="ready" && d.objTot<=0){
+      v.innerHTML='<div style="color:var(--muted);font-size:13px;padding:10px 2px">Нет данных по трудоёмкости. Загрузите справочник с чел-ч и введите факт по пакетам.</div>';
+      ovl6.classList.add("on"); kpiSheet.classList.add("on"); return;
+    }
+    if((mode==="budget"||mode==="done") && bd.objBud<=0){
+      v.innerHTML='<div style="color:var(--muted);font-size:13px;padding:10px 2px">Нет данных по бюджету. Загрузите справочник / детализацию.</div>';
+      ovl6.classList.add("on"); kpiSheet.classList.add("on"); return;
+    }
+
+    function discBlock(rows, m){
       var html='';
       rows.forEach(function(x,i){
-        var id="kpi-exp-"+mode+"-"+i;
+        var id="kpi-exp-"+m+"-"+i;
         var children = (x.children||[]);
         html += '<div class="kpirow kpidisc" data-exp="'+id+'">';
-        html += '<div class="kpil"><span class="kcaret">▸</span><span>'+escapeHtml(x.name)+'</span><b>'+(mode==="ready"? (fmtPct(x.pct)+" %") : (fmtMoney(x.bud)+" ₽"))+'</b></div>';
-        if(mode==="ready") html += bar(x.pct)+'<div class="kpix">освоено '+fmtNum(Math.round(x.earned||0))+' / '+fmtNum(Math.round(x.tot||0))+' чел-ч</div>';
-        else html += bar(x.pct)+'<div class="kpix">освоено '+fmtMoney(x.earned)+' ₽ · '+fmtPct(x.pct)+' %</div>';
+        if(m==="ready"){
+          html += '<div class="kpil"><span class="kcaret">▸</span><span>'+escapeHtml(x.name)+'</span><b>'+fmtPct(x.pct)+' %</b></div>';
+          html += bar(x.pct)+'<div class="kpix">освоено '+fmtNum(Math.round(x.earned||0))+' / '+fmtNum(Math.round(x.tot||0))+' чел-ч</div>';
+        } else if(m==="budget"){
+          html += '<div class="kpil"><span class="kcaret">▸</span><span>'+escapeHtml(x.name)+'</span><b>'+fmtMoney(x.bud)+' ₽</b></div>';
+          html += bar(x.pct)+'<div class="kpix">выполнено '+fmtMoney(x.earned)+' ₽ · '+fmtPct(x.pct)+' %</div>';
+        } else { // done
+          html += '<div class="kpil"><span class="kcaret">▸</span><span>'+escapeHtml(x.name)+'</span><b>'+fmtMoney(x.earned)+' ₽</b></div>';
+          html += bar(x.pct)+'<div class="kpix">бюджет '+fmtMoney(x.bud)+' ₽ · '+fmtPct(x.pct)+' %</div>';
+        }
         html += '<div class="kpielems" id="'+id+'" style="display:none;padding-left:10px;margin-top:6px">';
         children.forEach(function(c){
-          if(mode==="ready")
+          if(m==="ready")
             html += '<div class="kpirow" style="padding:6px 2px"><div class="kpil"><span>'+escapeHtml(c.name)+'</span><b>'+fmtPct(c.pct)+' %</b></div>'+bar(c.pct)+'<div class="kpix">факт '+fmtNum(c.fact)+' / '+fmtNum(c.proj)+' '+escapeHtml(c.unit||"")+'</div></div>';
+          else if(m==="budget")
+            html += '<div class="kpirow" style="padding:6px 2px"><div class="kpil"><span>'+escapeHtml(c.name)+'</span><b>'+fmtMoney(c.bud)+' ₽</b></div>'+bar(c.pct)+'<div class="kpix">выполнено '+fmtMoney(c.earned)+' ₽ · '+fmtPct(c.pct)+' %</div></div>';
           else
-            html += '<div class="kpirow" style="padding:6px 2px"><div class="kpil"><span>'+escapeHtml(c.name)+'</span><b>'+fmtMoney(c.bud)+' ₽</b></div>'+bar(c.pct)+'<div class="kpix">освоено '+fmtMoney(c.earned)+' ₽ · '+fmtPct(c.pct)+' %</div></div>';
+            html += '<div class="kpirow" style="padding:6px 2px"><div class="kpil"><span>'+escapeHtml(c.name)+'</span><b>'+fmtMoney(c.earned)+' ₽</b></div>'+bar(c.pct)+'<div class="kpix">бюджет '+fmtMoney(c.bud)+' ₽ · '+fmtPct(c.pct)+' %</div></div>';
         });
         html += '</div></div>';
       });
       return html;
     }
-    // group readiness by disc
+
+    // readiness by disc
     var rDisc={}, rOrder=[];
     (d.byEl||[]).forEach(function(x){
       var dn=x.disc||"—";
@@ -1445,46 +1469,40 @@
       rDisc[dn].tot += (x.tot||0); rDisc[dn].earned += (x.earned||0);
       rDisc[dn].children.push(x);
     });
-    // if readiness uses byDisc already
     var readyDiscRows = rOrder.map(function(dn){
       var x=rDisc[dn]; x.pct = x.tot>0 ? x.earned/x.tot*100 : 0; return x;
     });
     if((d.byDisc||[]).length && !readyDiscRows.length){
       readyDiscRows = (d.byDisc||[]).map(function(x){
-        return {name:x.name, pct:x.pct, tot:x.tot, earned:x.earned, children:(d.byEl||[]).filter(function(e){return (e.disc||"—")===(x.name||"—");})};
+        return {name:x.name, tot:x.tot, earned:x.earned, pct:x.pct, children:(d.byEl||[]).filter(function(e){return (e.disc||"—")===(x.name||"—");})};
       });
     }
-    // budget disc already in bd.byDisc — attach children from byEl
+
+    // budget by disc with children
     var budDiscRows = (bd.byDisc||[]).map(function(x){
-      return {name:x.name, bud:x.bud, earned:x.earned, pct:x.pct, children:(bd.byEl||[]).filter(function(e){return (e.disc||"—")===(x.name||"—");})};
+      return {name:x.name, bud:x.bud, earned:x.earned, pct:x.pct,
+        children:(bd.byEl||[]).filter(function(e){return (e.disc||"—")===(x.name||"—");})};
     });
 
-    var p1=document.createElement("div"); p1.className="kpipage";
-    var h='<div class="kpibig"><div class="kpit">Строительная готовность объекта</div><div class="kpin">'+fmtPct(d.objPct)+' %</div>'+
-      '<div class="kpisub">освоено '+fmtNum(Math.round(d.objEarned))+' из '+fmtNum(Math.round(d.objTot))+' чел-ч</div>'+bar(d.objPct)+'</div>';
-    h += '<div style="font-size:12px;color:var(--muted);margin:8px 2px 4px">Дисциплины — нажмите, чтобы раскрыть элементы</div>';
-    h += discBlock("ready", readyDiscRows, "ready");
-    p1.innerHTML=h; pager.appendChild(p1);
+    var html = "";
+    if(mode==="ready"){
+      html += '<div class="kpibig"><div class="kpit">Строительная готовность объекта</div><div class="kpin">'+fmtPct(d.objPct)+' %</div>';
+      html += '<div class="kpisub">освоено '+fmtNum(Math.round(d.objEarned||0))+' / '+fmtNum(Math.round(d.objTot||0))+' чел-ч</div>'+bar(d.objPct)+'</div>';
+      html += '<div style="font-size:12px;color:var(--muted);margin:8px 2px 4px">Дисциплины — нажмите, чтобы раскрыть элементы</div>';
+      html += discBlock(readyDiscRows, "ready");
+    } else if(mode==="budget"){
+      html += '<div class="kpibig" style="background:linear-gradient(135deg,#1e7a46,#27AE60)"><div class="kpit">Прогнозный бюджет объекта</div><div class="kpin" style="font-size:30px">'+fmtMoney(bd.objBud)+' ₽</div>';
+      html += '<div class="kpisub">выполнено '+fmtMoney(bd.objEarned)+' ₽ ('+fmtPct(bd.objBud>0?bd.objEarned/bd.objBud*100:0)+' %)</div>'+bar(bd.objBud>0?bd.objEarned/bd.objBud*100:0)+'</div>';
+      html += '<div style="font-size:12px;color:var(--muted);margin:8px 2px 4px">Работы + материалы + техника. Нажмите дисциплину.</div>';
+      html += discBlock(budDiscRows, "budget");
+    } else {
+      html += '<div class="kpibig" style="background:linear-gradient(135deg,#1d4ed8,#2563eb)"><div class="kpit">Выполнено по стоимости</div><div class="kpin" style="font-size:30px">'+fmtMoney(bd.objEarned)+' ₽</div>';
+      html += '<div class="kpisub">из бюджета '+fmtMoney(bd.objBud)+' ₽ · '+fmtPct(bd.objBud>0?bd.objEarned/bd.objBud*100:0)+' %</div>'+bar(bd.objBud>0?bd.objEarned/bd.objBud*100:0)+'</div>';
+      html += '<div style="font-size:12px;color:var(--muted);margin:8px 2px 4px">Стоимость по факту объёмов пакетов. Нажмите дисциплину.</div>';
+      html += discBlock(budDiscRows, "done");
+    }
+    v.innerHTML = html;
 
-    var p2=document.createElement("div"); p2.className="kpipage";
-    var g='<div class="kpibig" style="background:linear-gradient(135deg,#1e7a46,#27AE60)"><div class="kpit">Прогнозный бюджет объекта</div><div class="kpin" style="font-size:30px">'+fmtMoney(bd.objBud)+' ₽</div>'+
-      '<div class="kpisub">освоено '+fmtMoney(bd.objEarned)+' ₽ ('+fmtPct(bd.objBud>0?bd.objEarned/bd.objBud*100:0)+' %)</div>'+bar(bd.objBud>0?bd.objEarned/bd.objBud*100:0)+'</div>';
-    g += '<div style="font-size:12px;color:var(--muted);margin:8px 2px 4px">Учтены работы, материалы и техника (по детализации). Нажмите дисциплину, чтобы раскрыть.</div>';
-    g += discBlock("budget", budDiscRows, "budget");
-    p2.innerHTML=g; pager.appendChild(p2);
-
-    v.appendChild(pager);
-    var dots=document.createElement("div"); dots.className="kpidots";
-    [["Готовность",0],["Бюджет",1]].forEach(function(pair,i){
-      var kd=document.createElement("div"); kd.className="kd"+(i===0?" on":""); kd.textContent=pair[0];
-      kd.addEventListener("click",function(){
-        Array.prototype.forEach.call(dots.querySelectorAll(".kd"),function(x,j){ x.classList.toggle("on",j===i); });
-        pager.scrollTo({left:pager.clientWidth*i, behavior:"smooth"});
-      });
-      dots.appendChild(kd);
-    });
-    v.appendChild(dots);
-    // expand/collapse
     v.onclick = function(ev){
       var row = ev.target.closest && ev.target.closest(".kpidisc");
       if(!row) return;
@@ -1496,12 +1514,8 @@
       var caret = row.querySelector(".kcaret");
       if(caret) caret.textContent = open ? "▸" : "▾";
       if(!open){
-        // раскрываем вниз: прокрутить блок в видимую область
         setTimeout(function(){
-          try{
-            row.scrollIntoView({block:"start", behavior:"smooth"});
-            box.scrollIntoView({block:"nearest", behavior:"smooth"});
-          }catch(e){}
+          try{ row.scrollIntoView({block:"start", behavior:"smooth"}); box.scrollIntoView({block:"nearest", behavior:"smooth"}); }catch(e){}
         }, 30);
       }
     };
@@ -2771,15 +2785,26 @@
   (function(){ var sc=document.getElementById("scroll"), hint=document.getElementById("scrollHint"); if(sc&&hint) sc.addEventListener("scroll",function(){ hint.style.opacity=(sc.scrollLeft>20?"0":"1"); }); })();
 
   function fmtShortMoney(n){ n=n||0; if(n>=1e6) return (Math.round(n/1e5)/10)+" млн"; if(n>=1e3) return Math.round(n/1e3)+" тыс"; return Math.round(n)+""; }
+  function totalPayments(){
+    try{
+      if(typeof payItems!=="undefined" && payItems && payItems.length)
+        return payItems.reduce(function(s,x){ return s+(num(x.s)||0); },0);
+      var raw = StorageAdapter.getSync(typeof PAY_KEY!=="undefined"?PAY_KEY:"gantt_payments_v1");
+      if(raw){ var o=JSON.parse(raw); if(o&&o.items) return o.items.reduce(function(s,x){ return s+(num(x.s)||num(x.sum)||0); },0); if(o&&o.total) return num(o.total)||0; }
+    }catch(e){}
+    return 0;
+  }
   function renderDash(){
     var dash=document.getElementById("dash"); if(!dash) return; dash.innerHTML="";
     var r=readiness(), bd=budgetData();
+    var payTot = totalPayments();
     var grid=document.createElement("div"); grid.className="kpigrid";
     function card(t,v,u,onclick){ var c=document.createElement("div"); c.className="kpicard";
       c.innerHTML='<div class="kt">'+t+'</div><div class="kv">'+v+' <span class="ku">'+u+'</span></div>'; c.addEventListener("click",onclick); return c; }
-    grid.appendChild(card("Бюджет", fmtShortMoney(bd.objBud), "₽", function(){ openKpi(); }));
-    grid.appendChild(card("Выполнено", fmtShortMoney(bd.objEarned), "₽", function(){ openCashflow(); }));
-    grid.appendChild(card("Готовность", fmtPct(r.objPct), "%", function(){ openKpi(); }));
+    grid.appendChild(card("Бюджет", fmtShortMoney(bd.objBud), "₽", function(){ openKpi("budget"); }));
+    grid.appendChild(card("Оплаты", fmtShortMoney(payTot), "₽", function(){ openPayBudget(); }));
+    grid.appendChild(card("Выполнено", fmtShortMoney(bd.objEarned), "₽", function(){ openKpi("done"); }));
+    grid.appendChild(card("Готовность", fmtPct(r.objPct), "%", function(){ openKpi("ready"); }));
     dash.appendChild(grid);
     // виджет план
     var w1=document.createElement("div"); w1.className="widget";
