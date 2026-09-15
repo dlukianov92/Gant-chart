@@ -200,10 +200,15 @@
   .ovl{position:fixed;inset:0;background:rgba(15,22,35,.42);z-index:40;opacity:0;pointer-events:none;transition:opacity .18s}
   .ovl.on{opacity:1;pointer-events:auto}
   .sheet{position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--panel);
-    border-radius:18px 18px 0 0;padding:14px 16px calc(16px + env(safe-area-inset-bottom));
+    border-radius:18px 18px 0 0;padding:8px 16px 0;
+    max-height:min(92vh,100%);
+    display:flex;flex-direction:column;
+    overflow:hidden;
     transform:translateY(105%);transition:transform .22s cubic-bezier(.2,.8,.2,1);box-shadow:var(--shadow)}
   .sheet.on{transform:translateY(0)}
-  .sheet .grab{width:46px;height:5px;border-radius:3px;background:var(--grid-strong);margin:0 auto;padding:10px 0;background-clip:content-box;box-sizing:content-box;position:relative;top:-8px}
+  .sheet .grab{width:46px;height:5px;border-radius:3px;background:var(--grid-strong);margin:0 auto;padding:10px 0;background-clip:content-box;box-sizing:content-box;position:relative;top:-2px;flex:0 0 auto}
+  .sheet-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 0 calc(16px + env(safe-area-inset-bottom));}
+  #copyPkgBtn{position:relative;z-index:2;pointer-events:auto}
   .sheet h2{font-size:13px;margin:0 0 8px;color:var(--muted);font-weight:650;letter-spacing:.3px}
   .types{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
   .type{display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--grid-strong);background:#fff;
