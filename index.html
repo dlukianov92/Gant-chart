@@ -46,7 +46,15 @@
     </div>
     <div class="gpage">
       <div class="gcard">
-        <div class="gcardhead"><b>График работ</b><span class="scrollhint" id="scrollHint">Прокрутите вправо ›</span></div>
+        <div class="gcardhead">
+          <b>График работ</b>
+          <div class="gfilters">
+            <select id="contrFilter" class="contrfilter" aria-label="Фильтр подрядчика">
+              <option value="">Все подрядчики</option>
+            </select>
+            <span class="scrollhint" id="scrollHint">Прокрутите вправо ›</span>
+          </div>
+        </div>
         <div class="scroll" id="scroll">
           <div class="canvas" id="canvas">
             <div class="header" id="header"></div>
@@ -178,6 +186,9 @@
     <span class="rlbl">Порядок в группе</span>
     <button class="btn small" id="upBtn">↑ Выше</button>
     <button class="btn small" id="downBtn">↓ Ниже</button>
+  </div>
+  <div class="row" style="gap:8px;margin-bottom:8px">
+    <button class="btn" id="copyPkgBtn" style="flex:1">📋 Копировать пакет</button>
   </div>
   <div class="row">
     <button class="btn danger" id="delBtn">Удалить</button>
