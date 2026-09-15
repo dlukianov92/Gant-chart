@@ -675,6 +675,49 @@
   var collapsed={}; try{ collapsed=JSON.parse(lsGet("gantt_collapsed")||"{}")||{}; }catch(e){ collapsed={}; }
   function discOf(t){ return (t.id===null? "Без дисциплины" : (t.disc||"Без дисциплины")); }
   function toggleDisc(d){ collapsed[d]=!collapsed[d]; try{ lsSet("gantt_collapsed",JSON.stringify(collapsed)); }catch(e){} render(); }
+  var contrFilter=""; // "" = все, "__none__" = без подрядчика
+  function listContractors(){
+    var seen={}, out=[];
+    state.bars.forEach(function(b){
+      var c=(b.contr||"").trim();
+      if(c && !seen[c.toLowerCase()]){ seen[c.toLowerCase()]=1; out.push(c); }
+    });
+    out.sort(function(a,b){ return a.localeCompare(b,"ru"); });
+    return out;
+  }
+  function barMatchesContr(b){
+    if(!contrFilter) return true;
+    var c=(b.contr||"").trim();
+    if(contrFilter==="__none__") return !c;
+    return c===contrFilter;
+  }
+  function fillContrFilter(){
+    var sel=document.getElementById("contrFilter"); if(!sel) return;
+    var cur=contrFilter;
+    var list=listContractors();
+    sel.innerHTML="";
+    var o0=document.createElement("option"); o0.value=""; o0.textContent="Все подрядчики"; sel.appendChild(o0);
+    var oN=document.createElement("option"); oN.value="__none__"; oN.textContent="Без подрядчика"; sel.appendChild(oN);
+    list.forEach(function(c){
+      var o=document.createElement("option"); o.value=c; o.textContent=c; sel.appendChild(o);
+    });
+    // restore selection if still valid
+    var ok=false;
+    for(var i=0;i<sel.options.length;i++) if(sel.options[i].value===cur) ok=true;
+    sel.value=ok?cur:"";
+    contrFilter=sel.value;
+  }
+  function bindContrFilter(){
+    var sel=document.getElementById("contrFilter"); if(!sel || sel._bound) return;
+    sel._bound=1;
+    sel.addEventListener("change", function(){
+      contrFilter=sel.value||"";
+      render();
+      var n = state.bars.filter(barMatchesContr).length;
+      if(contrFilter) toast("Фильтр: "+(contrFilter==="__none__"?"без подрядчика":contrFilter)+" · "+n+" пак.");
+    });
+  }
+
   function render(){
     if(!groupsEl){ groupsEl=document.getElementById("groups"); }
     if(!groupsEl){ console.error("groups el missing"); return; }
@@ -684,7 +727,7 @@
     // элементы с полосами, сгруппированные по дисциплине (в порядке groupOrder)
     var discList=[], byDisc={};
     groupOrder().forEach(function(t){
-      var bars=state.bars.filter(function(b){return effTypeId(b,known)===t.id;}).sort(function(a,b){return a.order-b.order;});
+      var bars=state.bars.filter(function(b){return effTypeId(b,known)===t.id && barMatchesContr(b);}).sort(function(a,b){return a.order-b.order;});
       if(!bars.length) return;
       var d=discOf(t);
       if(!byDisc[d]){ byDisc[d]={items:[],count:0}; discList.push(d); }
@@ -715,6 +758,7 @@
       });
     });
     groupsEl.style.minHeight="";
+    fillContrFilter(); bindContrFilter();
     renderPeopleCard();
   }
   var PROFCOL=["#C0392B","#2980B9","#16A085","#8E44AD","#E67E22","#2C3E50","#D81B60"];
@@ -1034,6 +1078,22 @@
   fFact.addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); commitFact(); fFact.blur(); } });
   document.getElementById("doneBtn").addEventListener("click",closeEditor);
   ovl.addEventListener("click",closeEditor);
+    var copyPkgBtn=document.getElementById("copyPkgBtn");
+  if(copyPkgBtn) copyPkgBtn.addEventListener("click",function(){
+    if(!editing) return;
+    // сохранить текущие поля редактора в исходный пакет
+    editing.note=fNote.value.trim();
+    editing.contr=fContr.value.trim();
+    var src=editing;
+    var nb=copyPackage(src);
+    if(!nb) return;
+    save();
+    closeEditor();
+    showScreen("gantt");
+    render();
+    openEditor(nb);
+    toast("Пакет скопирован — поправьте объём и сроки");
+  });
   document.getElementById("delBtn").addEventListener("click",function(){ if(!editing)return;
     state.bars=state.bars.filter(function(x){return x.id!==editing.id;}); ovl.classList.remove("on"); sheet.classList.remove("on"); editing=null; save(); render(); toast("Полоса удалена"); });
   document.getElementById("upBtn").addEventListener("click",function(){ moveBar(-1); });
@@ -1082,6 +1142,32 @@
   });
 
   // ---- add ----
+  function deepClone(o){
+    try{ return JSON.parse(JSON.stringify(o)); }catch(e){ return o; }
+  }
+  function copyPackage(src){
+    if(!src) return null;
+    var mx=state.bars.reduce(function(m,b){return Math.max(m,b.order);},-1);
+    var note=(src.note||"").trim();
+    // не дублируем суффикс «копия» бесконечно
+    if(note && !/\(копия\s*\d*\)?\s*$/i.test(note)) note = note+" (копия)";
+    else if(!note) note = "Копия";
+    var nb={
+      id:"b"+(seq++),
+      order:mx+1,
+      typeId:src.typeId,
+      start:clampDay(src.start),
+      end:clampDay(src.end<=src.start?src.start+1:src.end),
+      note:note,
+      contr:src.contr||"",
+      pkgVol:(src.pkgVol!=null?src.pkgVol:""),
+      fact:"", // факт у копии с нуля — удобно для разбиения объёма
+      resOv:deepClone(src.resOv||{}),
+      mats:deepClone(src.mats||[])
+    };
+    state.bars.push(nb);
+    return nb;
+  }
   function addPackage(){
     var mx=state.bars.reduce(function(m,b){return Math.max(m,b.order);},-1);
     var nb={id:"b"+(seq++),order:mx+1,typeId:null,start:clampDay(todayDay),end:clampDay(todayDay+5),note:"",contr:"",pkgVol:"",fact:"",resOv:{},mats:[]};
