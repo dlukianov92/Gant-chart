@@ -1017,7 +1017,7 @@
       }
     }
   }
-  function openEditor(b){ editing=b; buildElemSelectors(); fNote.value=b.note||""; fContr.value=b.contr||""; fillContractors(); refreshPkg(); updateMatBtn(); ovl.classList.add("on"); sheet.classList.add("on"); }
+  function openEditor(b){ editing=b; buildElemSelectors(); fNote.value=b.note||""; fContr.value=b.contr||""; fillContractors(); refreshPkg(); updateMatBtn(); bindCopyPkgBtn(); ovl.classList.add("on"); sheet.classList.add("on"); }
   function moveBar(dir){
     if(!editing) return; var known=knownIdSet();
     var grp=state.bars.filter(function(b){ return effTypeId(b,known)===effTypeId(editing,known); }).sort(function(a,b){return a.order-b.order;});
@@ -1078,22 +1078,32 @@
   fFact.addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); commitFact(); fFact.blur(); } });
   document.getElementById("doneBtn").addEventListener("click",closeEditor);
   ovl.addEventListener("click",closeEditor);
-    var copyPkgBtn=document.getElementById("copyPkgBtn");
-  if(copyPkgBtn) copyPkgBtn.addEventListener("click",function(){
-    if(!editing) return;
-    // сохранить текущие поля редактора в исходный пакет
-    editing.note=fNote.value.trim();
-    editing.contr=fContr.value.trim();
-    var src=editing;
-    var nb=copyPackage(src);
-    if(!nb) return;
-    save();
-    closeEditor();
-    showScreen("gantt");
-    render();
-    openEditor(nb);
-    toast("Пакет скопирован — поправьте объём и сроки");
-  });
+  function bindCopyPkgBtn(){
+    var btn=document.getElementById("copyPkgBtn");
+    if(!btn || btn._bound) return;
+    btn._bound=1;
+    btn.addEventListener("click", function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      if(!editing){ toast("Сначала откройте пакет"); return; }
+      try{
+        if(fNote) editing.note=fNote.value.trim();
+        if(fContr) editing.contr=fContr.value.trim();
+        // зафиксировать объём/факт с полей
+        try{ commitPkgVol(); }catch(_){}
+        try{ commitFact(); }catch(_){}
+      }catch(_){}
+      var nb=copyPackage(editing);
+      if(!nb){ toast("Не удалось скопировать"); return; }
+      save();
+      try{ closeEditor(); }catch(_){}
+      showScreen("gantt");
+      render();
+      openEditor(nb);
+      toast("Пакет скопирован — поправьте объём и сроки");
+    });
+  }
+  bindCopyPkgBtn();
   document.getElementById("delBtn").addEventListener("click",function(){ if(!editing)return;
     state.bars=state.bars.filter(function(x){return x.id!==editing.id;}); ovl.classList.remove("on"); sheet.classList.remove("on"); editing=null; save(); render(); toast("Полоса удалена"); });
   document.getElementById("upBtn").addEventListener("click",function(){ moveBar(-1); });
